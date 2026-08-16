@@ -1,0 +1,32 @@
+---
+title: "Platform limits"
+description: "Current render, crawl, batch, result, and AI-spec limits."
+---
+
+| Limit | Value |
+| --- | ---: |
+| Browser concurrency | 120 per account by default |
+| Per-host politeness | 1 second, 2 concurrent by default |
+| URLs per batch | 100 |
+| Crawl pages | 5,000 |
+| Crawl depth | 10 |
+| Crawl concurrency | 10 pages |
+| Crawl duration | 6 hours |
+| Screenshot resolution | 3,840 × 2,160 |
+| Render timeout | 60 seconds |
+| Stored job result | approximately 1.5 MB |
+| Ordinary cache entry | 24 MB |
+| Inline design JSON | 2 MiB |
+| AI projection | 16 KiB |
+| AI provider response body | 512 KiB |
+| AI provider deadline | 30 seconds |
+| Design stylesheets | 60 sheets, 40,000 rules, 2 MB total |
+
+Limits are validation ceilings, not performance targets. Full-page screenshots, script-heavy sites, large DOMs, and stylesheet-heavy design extraction can take longer than simple snapshots.
+
+## Pagination and truncation
+
+Crawl pages use a cursor. Send the returned cursor unchanged on the next request rather than constructing offsets.
+
+Async job results must fit in D1. When a result exceeds about 1.5 MB, Scrinly removes large optional fields in a deterministic order and records their names in `result.truncated`. Prefer object storage when you need complete large artifacts.
+

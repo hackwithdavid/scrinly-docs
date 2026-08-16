@@ -1,0 +1,27 @@
+---
+title: "Batches"
+description: "Submit up to 100 asynchronous renders in one request."
+---
+
+Batch routes reduce request overhead when every URL uses the same render options. Each valid URL becomes an independent async job.
+
+```bash
+curl --request POST 'https://api.scrinly.com/render/batch' \
+  --header 'Authorization: Bearer sk_live_your_key' \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "urls":["https://example.com","https://example.org"],
+    "screenshot":true,
+    "store":true,
+    "storage_path":"batch-shots"
+  }'
+```
+
+Use `/render/smart-batch` when the input contains several domains. It groups work by domain and adds a domain batch tag, which improves host-aware scheduling without changing the individual job contract.
+
+## Partial acceptance
+
+A batch can return HTTP `207 Multi-Status`. Inspect every item rather than treating the entire request as one success or failure. Valid URLs are queued, invalid URLs include a typed error, and credits reserved for rejected items are refunded.
+
+Both routes accept at most 100 URLs. One credit is reserved per URL for the base async render; additional extraction options can affect the final cost. Poll each returned job through `/status/{jobId}` or supply a webhook.
+

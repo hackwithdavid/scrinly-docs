@@ -1,0 +1,80 @@
+---
+title: "Quickstart"
+description: "Make your first Scrinly snapshot request in five minutes."
+---
+
+## 1. Create an API key
+
+Enter your email at the [Scrinly dashboard](https://app.scrinly.com) and click the link we send you. There is no password to choose. Your account is created on the free plan with 100 credits a month, and your first API key is issued immediately.
+
+Store it in your server-side secret manager.
+
+```bash
+export SCRINLY_API_KEY="sk_live_your_key"
+```
+
+## 2. Extract a page
+
+<CodeGroup>
+```bash cURL
+curl --get "https://api.scrinly.com/render/snapshot" \
+  --header "Authorization: Bearer $SCRINLY_API_KEY" \
+  --data-urlencode "url=https://example.com" \
+  --data-urlencode "markdown=true" \
+  --data-urlencode "links=true"
+```
+
+```javascript JavaScript
+const response = await fetch("https://api.scrinly.com/render/snapshot", {
+  method: "POST",
+  headers: {
+    Authorization: `Bearer ${process.env.SCRINLY_API_KEY}`,
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    url: "https://example.com",
+    markdown: true,
+    links: true,
+  }),
+});
+
+if (!response.ok) throw new Error(await response.text());
+const snapshot = await response.json();
+console.log(snapshot.metadata.title, snapshot.markdown);
+```
+
+```python Python
+import os
+import requests
+
+response = requests.post(
+    "https://api.scrinly.com/render/snapshot",
+    headers={"Authorization": f"Bearer {os.environ['SCRINLY_API_KEY']}"},
+    json={
+        "url": "https://example.com",
+        "markdown": True,
+        "links": True,
+    },
+    timeout=70,
+)
+response.raise_for_status()
+snapshot = response.json()
+print(snapshot["metadata"]["title"])
+```
+</CodeGroup>
+
+Metadata is always included. Optional extraction fields appear only when requested.
+
+## 3. Check usage
+
+```bash
+curl "https://api.scrinly.com/usage" \
+  --header "Authorization: Bearer $SCRINLY_API_KEY"
+```
+
+Every render response also includes `X-Scrinly-Credits-Used` and `X-Scrinly-Credits-Limit`.
+
+<CardGroup cols={2}>
+  <Card title="Capture screenshots" href="/guides/screenshots" icon="camera" />
+  <Card title="Generate a design spec" href="/guides/ai-design-specs" icon="wand-magic-sparkles" />
+</CardGroup>

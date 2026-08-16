@@ -1,0 +1,19 @@
+---
+title: "Changelog"
+description: "Verified Scrinly Browser API releases and behavior changes."
+---
+
+## August 14, 2026 — Design extraction and AI specifications
+
+- Added deterministic design extraction for tokens, color, typography, breakpoints, motion, and library signals.
+- Added synchronous grounded Markdown design specifications through DeepSeek and OpenAI, including server-to-server BYOK.
+- Added account-, provider-, model-, and credential-isolated specification caching with cache-aware tariffs and typed `design_only` partial responses.
+- Sanitized font sources and capped the privacy-preserving provider projection at 16 KiB.
+- Required customer authentication and ownership checks for job status, schedule listing, and schedule cancellation.
+
+## August 8, 2026 — Cloudflare migration
+
+- Moved the browser service to Cloudflare Workers Browser Rendering, Queues, D1, and KV.
+- Added asynchronous render jobs, smart batches, crawls, schedules, storage delivery, status polling, and signed webhooks.
+- Added per-host politeness controls and account-scoped credit enforcement.
+

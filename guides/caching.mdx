@@ -1,0 +1,18 @@
+---
+title: "Caching"
+description: "Reuse equivalent renders and understand the separate AI-spec caches."
+---
+
+Set `cache:true` on an ordinary render to reuse a recent result with the same validated, response-affecting options. Cache hits avoid Browser Rendering and reduce latency. Credentials are represented only by an opaque fingerprint in cache identity.
+
+AI design specifications use two account-scoped caches automatically:
+
+- A 24-hour snapshot cache stores the complete design-bearing snapshot and is reusable across AI providers.
+- A seven-day specification cache is isolated by account, provider, server-selected model, credential mode, and provider-key fingerprint.
+
+Platform-funded and BYOK specification entries never mix. Raw API keys are not cache keys or cache values.
+
+Set `refresh:true` on a spec request to bypass both AI caches. This starts a new render for URL input and a new generation for inline design input, so the non-cache tariff applies.
+
+Cache writes are best-effort. A write failure does not fail an otherwise successful render or specification, and failed AI generations are never cached.
+

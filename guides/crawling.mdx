@@ -1,0 +1,55 @@
+---
+title: "Crawling"
+description: "Traverse a site safely and collect snapshots, links, and stored results."
+---
+
+Scrinly crawls outward from a seed URL, discovers links, and snapshots each eligible page. Credits are charged one page at a time, so a crawl can stop with `out_of_credits` without losing completed work.
+
+## Start a crawl
+
+```bash
+curl --request POST 'https://api.scrinly.com/crawl' \
+  --header 'Authorization: Bearer sk_live_your_key' \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "url":"https://example.com",
+    "maxDepth":2,
+    "maxPages":100,
+    "scope":"origin",
+    "markdown":true,
+    "store":true,
+    "storage_path":"crawls"
+  }'
+```
+
+The response includes an ID and relative links for status, page inventory, and results. `store:false` produces a link graph without requiring a storage bucket.
+
+## Control scope
+
+`scope` controls where discovered links may lead:
+
+- `origin` keeps the scheme, host, and port unchanged.
+- `host` allows the same hostname.
+- `domain` allows subdomains of the registrable domain.
+- `any` follows eligible absolute links without a host boundary.
+
+Use `includePaths` and `excludePaths` for path filtering. `*` matches inside one path segment; `**` spans segments. Binary files are skipped unless `followBinary` is true.
+
+Scrinly removes fragments, common tracking parameters, session identifiers, and redundant trailing slashes before deduplication. Meaningful query values are retained by default. Set `query` to `strip` or `keep` when the default `normalise` behavior is not suitable.
+
+## Read progress and results
+
+- `GET /crawls` lists your account's crawls.
+- `GET /crawl/{crawlId}` returns status, counters, `creditsSpent`, and `stopReason`.
+- `GET /crawl/{crawlId}/pages` returns cursor-paginated page state. Filter with `status`, and continue with the returned cursor.
+- `GET /crawl/{crawlId}/results` returns completed pages and their content locations.
+- `DELETE /crawl/{crawlId}` cancels a crawl. In-flight pages may finish; queued pages are skipped.
+
+Possible terminal states are `completed`, `cancelled`, `failed`, and `out_of_credits`.
+
+## Politeness and robots
+
+By default, Scrinly identifies as `Scrinly/3.0 (+https://scrinly.com/bot)`, obeys `robots.txt` and `Crawl-delay`, waits at least one second between requests to a host, and allows two concurrent requests per host. This host budget is shared with other Scrinly traffic targeting that host.
+
+Set `robots:"ignore"` only when you are authorized to crawl the target and have a concrete reason to override its policy.
+

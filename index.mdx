@@ -1,0 +1,41 @@
+---
+title: "Scrinly Browser API"
+description: "Turn live webpages into screenshots, structured data, crawls, and grounded design specifications."
+---
+
+Scrinly gives developers a programmable browser without running Chromium infrastructure. Send a URL to the API and receive a screenshot, page content, design-system evidence, or a site-wide crawl.
+
+<CardGroup cols={2}>
+  <Card title="Extract a page" icon="file-code" href="/guides/snapshots">
+    Return metadata, Markdown, HTML, links, media, typography, colors, and structure.
+  </Card>
+  <Card title="Capture a screenshot" icon="camera" href="/guides/screenshots">
+    Render JPEG or PNG images with device, viewport, theme, and blocking controls.
+  </Card>
+  <Card title="Discover a design system" icon="palette" href="/guides/design-extraction">
+    Extract authored tokens, fonts, breakpoints, motion, and library signals.
+  </Card>
+  <Card title="Crawl a site" icon="spider" href="/guides/crawling">
+    Walk a site politely and persist page-level content with bounded concurrency.
+  </Card>
+</CardGroup>
+
+## Three primitives
+
+- **Snapshot** returns structured information from one page.
+- **Screenshot** returns or stores a rendered image.
+- **Crawl** discovers and snapshots pages starting from a seed URL.
+
+AI design specifications extend snapshots with a grounded Markdown design-system document. They are synchronous, cache-aware, and support Scrinly-funded DeepSeek or OpenAI credentials as well as ephemeral bring-your-own-key requests.
+
+## Base URL
+
+```text
+https://api.scrinly.com
+```
+
+All customer endpoints require a Scrinly API key. Create and manage keys in the [Scrinly dashboard](https://app.scrinly.com), then follow the [five-minute quickstart](/getting-started/quickstart).
+
+<Note>
+  This site documents the public customer API. Account provisioning, deployment, health, cache administration, and platform rate-limit inspection are internal Scrinly operations.
+</Note>

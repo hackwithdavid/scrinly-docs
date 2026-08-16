@@ -1,0 +1,19 @@
+---
+title: "API reference"
+description: "Base URL, authentication, response conventions, and endpoint groups."
+---
+
+The Scrinly Browser API is an HTTPS JSON API at:
+
+```text
+https://api.scrinly.com
+```
+
+Authenticate with `Authorization: Bearer <SCRINLY_API_KEY>`. The endpoint pages in this reference are generated from the public OpenAPI 3.1 contract and can be tried from the API playground.
+
+Screenshots return `image/png` or `image/jpeg` bytes unless storage is enabled. Most other successful calls return JSON. Batch requests can return `207 Multi-Status`, and synchronous AI-spec requests can return a successful `design_only` partial result.
+
+The legacy `api_key` query parameter remains available on compatible GET routes, but URLs leak into browser history, access logs, proxies, and analytics. Use the bearer header for all new integrations.
+
+The public contract excludes account provisioning, health probes, statistics, cache administration, and internal operations.
+

@@ -1,0 +1,53 @@
+---
+title: "Credits and billing"
+description: "Understand render costs, AI-spec tariffs, charging, and refunds."
+---
+
+Scrinly charges credits before starting work so exhausted accounts cannot consume browser time. Failed renders are refunded.
+
+## Browser operations
+
+| Work | Credits |
+| --- | ---: |
+| Snapshot extraction | 1 |
+| Design extraction | 2 total |
+| Screenshot | 1 |
+| Screenshot plus ordinary extraction | 2 |
+| Screenshot plus design extraction | 2 |
+| Crawl page | 1 per page |
+
+Batch requests charge one credit per submitted URL and refund URLs that fail validation or rendering. Scheduled requests are charged when they fire, not when the schedule is created.
+
+## AI design specifications
+
+| Path | Platform credential | BYOK |
+| --- | ---: | ---: |
+| Cold URL snapshot and spec | 5 | 2 |
+| Cached snapshot requiring generation | 3 | 1 |
+| Completed snapshot/spec cache hit | 1 | 1 |
+| Inline design generation | 3 | 1 |
+| Inline spec cache hit | 1 | 1 |
+
+`refresh=true` bypasses both AI caches. It costs 5 credits for a platform-funded URL request, 2 for a BYOK URL request, 3 for platform-funded inline design, or 1 for BYOK inline design.
+
+If the browser succeeds but AI generation fails, URL requests keep the render portion and refund the AI portion. Inline requests refund the complete AI charge. Responses expose the calculation as:
+
+```json
+{
+  "credits": { "charged": 5, "refunded": 3, "net": 2 }
+}
+```
+
+## Check current usage
+
+Call `GET /usage` or inspect `X-Scrinly-Credits-Used` and `X-Scrinly-Credits-Limit` on render responses.
+
+The [dashboard](https://app.scrinly.com) additionally shows the last 30 days broken down by day and endpoint, including failed requests and the credits refunded for them.
+
+## Free plan and renewals
+
+New accounts start on the free plan with **100 credits per month**. Free allowances reset 30 days after the period started.
+
+Paid plans reset on your subscription's own billing anniversary rather than on a rolling 30-day window, so the allowance and the invoice always cover the same period.
+
+Upgrade, downgrade, change a card, or cancel from the dashboard. Cancelling returns the account to the free plan; existing API keys keep working at the free allowance. Plan prices and allowances are maintained on the [Scrinly pricing page](https://scrinly.com/pricing).

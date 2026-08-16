@@ -1,0 +1,31 @@
+---
+title: "Storage"
+description: "Store screenshots and crawl artifacts in B2, S3-compatible storage, or R2."
+---
+
+Set `store:true` to upload a screenshot and receive JSON metadata instead of raw image bytes. Async screenshots always store their output.
+
+```json
+{
+  "url": "https://example.com",
+  "screenshot": true,
+  "store": true,
+  "storage_path": "screenshots/daily"
+}
+```
+
+Scrinly uses its configured Backblaze B2 storage by default. A server-to-server caller can select `b2`, `s3`, or `r2` and provide request-scoped storage settings:
+
+- `storage_provider`
+- `storage_bucket`
+- `storage_endpoint`
+- `storage_region`
+- `storage_access_key_id`
+- `storage_secret_access_key`
+- `storage_public_domain`
+- `storage_return_location`
+
+`storage_path` is required whenever a route stores output. Treat storage credentials like passwords: send them only in an HTTPS JSON request body, never in a URL, log, frontend bundle, or webhook payload. Scrinly uses them for that render rather than as a credential-management service.
+
+When `storage_public_domain` is set, returned content URLs use that domain. Set `storage_return_location:true` only when your backend needs the provider's raw object location.
+

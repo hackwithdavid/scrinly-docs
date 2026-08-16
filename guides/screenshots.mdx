@@ -1,0 +1,46 @@
+---
+title: "Screenshots"
+description: "Capture JPEG or PNG screenshots with browser controls."
+---
+
+Use `GET` or `POST /render/screenshot`. By default Scrinly returns JPEG bytes directly.
+
+```bash
+curl --get "https://api.scrinly.com/render/screenshot" \
+  --header "Authorization: Bearer $SCRINLY_API_KEY" \
+  --data-urlencode "url=https://example.com" \
+  --data-urlencode "format=png" \
+  --data-urlencode "fullPage=true" \
+  --output example.png
+```
+
+## Capture controls
+
+| Option | Default | Notes |
+| --- | --- | --- |
+| `format` | `jpg` | `jpg` or `png` |
+| `quality` | `80` | JPEG only, from 1 to 100 |
+| `width`, `height` | `1920 × 1080` | Maximum `3840 × 2160` |
+| `device` | — | Device preset; overrides width and height |
+| `fullPage` | `false` | Capture the complete scroll height |
+| `theme` | `light` | Emulates `prefers-color-scheme` |
+| `hideSelectors` | — | Hide matching elements before capture |
+| `clickSelectors` | — | Click selectors in order before capture |
+| `scrollToElement` | — | Scroll one matching element into view |
+
+Ads, cookie banners, chat widgets, popups, and accessibility overlays are blocked by default. Each blocker can be disabled independently.
+
+## Store instead of returning bytes
+
+Set `store=true` and supply `storage_path`. The response becomes JSON describing the stored asset. Async screenshots always store their output.
+
+```json
+{
+  "url": "https://example.com",
+  "format": "jpg",
+  "store": true,
+  "storage_path": "captures/homepages"
+}
+```
+
+Screenshot requests can also include `design=true` to capture the image and extract design evidence in the same browser session.

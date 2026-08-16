@@ -1,0 +1,55 @@
+---
+title: "Snapshots and extraction"
+description: "Extract metadata and structured content from one webpage."
+---
+
+Use `GET` or `POST /render/snapshot` to return structured page data. Snapshots block images, fonts, media, and—unless style extraction is requested—stylesheets to reduce render time.
+
+```bash
+curl --request POST "https://api.scrinly.com/render/snapshot" \
+  --header "Authorization: Bearer $SCRINLY_API_KEY" \
+  --header "Content-Type: application/json" \
+  --data '{
+    "url": "https://example.com",
+    "markdown": true,
+    "links": true,
+    "structure": true
+  }'
+```
+
+## Extraction fields
+
+| Option | Result |
+| --- | --- |
+| `markdown` | Readable page content converted to Markdown |
+| `html` | Full rendered HTML after browser execution |
+| `links` | Deduplicated absolute HTTP(S) links |
+| `images` | Image source information |
+| `videos` | Video source information |
+| `fonts` | Sanitized font families and delivery kinds |
+| `colors` | Frequency-ranked color palette |
+| `structure` | Headings, calls to action, sections, and positions |
+| `design` | Tokens, typography, breakpoints, motion, and library signals |
+
+Metadata is always returned. An unrequested optional field is omitted rather than returned as an empty value.
+
+## Authenticated pages
+
+Pass request headers and cookies in a POST body when the target page requires a session.
+
+```json
+{
+  "url": "https://portal.example.com/report",
+  "markdown": true,
+  "headers": { "X-Workspace": "demo" },
+  "cookies": [
+    { "name": "session", "value": "value", "domain": "portal.example.com", "secure": true }
+  ]
+}
+```
+
+Keep this payload server-side. Scrinly does not include request headers or cookies in AI design projections.
+
+## Synchronous and asynchronous modes
+
+Snapshots are synchronous by default. Set `async=true` or provide `webhookUrl` to queue the render and receive a job ID. `spec=true` is always synchronous and rejects async or webhook combinations.

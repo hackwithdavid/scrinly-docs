@@ -1,0 +1,21 @@
+---
+title: "Host rate limits"
+description: "Design reliable clients around host politeness, queueing, and retry behavior."
+---
+
+Scrinly limits traffic per destination host as well as by browser capacity. By default, a host receives no more than two concurrent requests with at least one second between starts. Crawls and individual renders targeting the same host share this budget.
+
+This protects origin servers and makes throughput intentionally different for 100 URLs on one host versus 100 URLs across many hosts. `/render/smart-batch` groups work by domain so the queue can schedule mixed-host workloads efficiently.
+
+## Client retries
+
+For `429` and transient `5xx` responses:
+
+1. Honor `Retry-After` when present.
+2. Use exponential backoff with random jitter.
+3. Cap attempts and total elapsed time.
+4. Avoid retrying validation, authentication, or ownership failures.
+5. Keep concurrency below the level that produced throttling.
+
+Do not create a duplicate async job merely because status polling was delayed. Continue polling the original ID unless its submission definitively failed.
+

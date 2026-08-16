@@ -1,0 +1,78 @@
+---
+title: "AI design specifications"
+description: "Generate grounded Markdown specifications from extracted design evidence."
+---
+
+Set `spec=true` on a snapshot to render a page, extract its design system, and generate a grounded Markdown specification synchronously. `spec` implies `design`.
+
+```bash
+curl --request POST "https://api.scrinly.com/render/snapshot" \
+  --header "Authorization: Bearer $SCRINLY_API_KEY" \
+  --header "Content-Type: application/json" \
+  --data '{
+    "url": "https://example.com",
+    "spec": true,
+    "provider": "openai"
+  }'
+```
+
+`spec=true` cannot be combined with `async=true` or `webhookUrl`. The client must remain connected; Scrinly gives the selected provider a 30-second deadline and does not retry it inline.
+
+## Providers
+
+| Provider | Server-selected model | Request behavior |
+| --- | --- | --- |
+| `deepseek` | `deepseek-v4-flash` | Default; thinking disabled; temperature `0.2` |
+| `openai` | `gpt-5.6-luna` | Responses API; `store:false`; reasoning effort `none` |
+
+Models, provider endpoints, and deployment names are controlled by Scrinly. Requests never fall back silently to another provider.
+
+OpenAI describes GPT-5.6 Luna as optimized for cost-sensitive, high-volume workloads and supports the Responses API with reasoning effort `none`. See the [official model documentation](https://developers.openai.com/api/docs/models/gpt-5.6-luna).
+
+## Bring your own provider key
+
+Server-to-server callers can provide the selected provider's key for the current request:
+
+```bash
+curl --request POST "https://api.scrinly.com/render/snapshot" \
+  --header "Authorization: Bearer $SCRINLY_API_KEY" \
+  --header "X-Scrinly-Provider-API-Key: $OPENAI_API_KEY" \
+  --header "Content-Type: application/json" \
+  --data '{"url":"https://example.com","spec":true,"provider":"openai"}'
+```
+
+The provider key is never accepted in the URL or JSON body. Scrinly does not store, echo, or log it. Cache identity uses a one-way HMAC fingerprint so separate credentials never share generated specs.
+
+## Generate from existing design data
+
+Use `POST /design/spec` to avoid another browser render when you already have a `design` object. The JSON body is capped at 2 MiB and is not echoed.
+
+```json
+{
+  "provider": "deepseek",
+  "design": {
+    "tokens": { "customProperties": [] },
+    "color": { "palette": [] }
+  }
+}
+```
+
+## Privacy projection
+
+Only a deterministic projection of at most 16 KiB is sent to the provider. It excludes the page URL and hostname, HTML, visible page text, screenshots, cookies, request headers, and font URLs. Custom-property names and observed CSS values remain and may carry residual identifying information.
+
+DeepSeek processing is disclosed as occurring in the People's Republic of China. OpenAI states that API data is not used for training by default unless the customer opts in; default abuse-monitoring logs may be retained for up to 30 days. Scrinly sends `store:false`, while retention and residency controls still depend on the OpenAI project that owns the selected credential. See [OpenAI data controls](https://developers.openai.com/api/docs/guides/your-data#default-usage-policies-by-endpoint).
+
+## Grounding and partial responses
+
+Scrinly mechanically checks generated colors, durations, easing values, breakpoints, and token literals against the projection.
+
+- Zero unknown literals produces `grounding.status: "clean"`.
+- One to five unknown literals produces `grounding.status: "flagged"` and returns the document.
+- More than five unknown literals, missing required headings, or truncated output fails generation.
+
+If rendering succeeded but generation failed, the HTTP response remains `200` with `status: "design_only"`, `spec: null`, the extracted design, and a typed `specError`. Safe grounding diagnostics can include `reason`, `missingHeadings`, and `unknownLiteralCount`, but never the rejected document or unknown values.
+
+## Caching
+
+URL snapshots are account-scoped for 24 hours. Completed specifications are cached for seven days and isolated by account, provider, model, credential mode, and credential fingerprint. `refresh=true` bypasses both caches. See [credits and billing](/getting-started/credits) for the cache-aware tariff.

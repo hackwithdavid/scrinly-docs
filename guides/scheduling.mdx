@@ -1,0 +1,34 @@
+---
+title: "Scheduling"
+description: "Run one-time, bulk, and recurring renders without maintaining your own scheduler."
+---
+
+Schedules are owned by the authenticated Scrinly account. Creating a schedule does not charge credits; Scrinly charges when it fires. If the account has insufficient credits, that occurrence is skipped rather than silently cancelling the schedule.
+
+## One-time schedules
+
+```bash
+curl --request POST 'https://api.scrinly.com/render/scheduled' \
+  --header 'Authorization: Bearer sk_live_your_key' \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "url":"https://example.com",
+    "scheduleAt":"2026-08-15T09:00:00Z",
+    "screenshot":true,
+    "store":true,
+    "storage_path":"scheduled"
+  }'
+```
+
+Use `POST /render/bulk-scheduled` to create up to 100 one-time schedules with shared render options.
+
+## Recurring schedules
+
+`POST /render/schedule-recurring` accepts a five-field UTC cron `pattern` in the order `minute hour day month weekday`. Each field supports `*`, one literal value, or a step such as `*/15`. Lists and ranges are not supported. Use `endDate` or `limit` to bound recurrence.
+
+## List and cancel
+
+`GET /render/scheduled` lists only schedules owned by the authenticated account. Filter with `type=delayed` or `type=repeatable`. Cancel with `DELETE /render/scheduled/{id}`.
+
+A schedule owned by another account behaves like an unknown ID: cancellation returns `404` and leaves it unchanged.
+

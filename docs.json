@@ -1,0 +1,94 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "almond",
+  "name": "Scrinly API",
+  "description": "Screenshots, structured page data, crawls, and grounded AI design specifications from any webpage.",
+  "colors": {
+    "primary": "#56C0EF",
+    "light": "#8FD5F4",
+    "dark": "#2FA7DC"
+  },
+  "logo": {
+    "light": "/assets/scrinly-mark.png",
+    "dark": "/assets/scrinly-mark.png"
+  },
+  "favicon": "/favicon.png",
+  "navbar": {
+    "links": [
+      { "label": "Scrinly home", "href": "https://scrinly.com" }
+    ],
+    "primary": {
+      "type": "button",
+      "label": "Dashboard",
+      "href": "https://app.scrinly.com"
+    }
+  },
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "icon": "book",
+        "groups": [
+          {
+            "group": "Getting started",
+            "pages": [
+              "index",
+              "getting-started/quickstart",
+              "getting-started/authentication",
+              "getting-started/credits"
+            ]
+          },
+          {
+            "group": "Core workflows",
+            "pages": [
+              "guides/snapshots",
+              "guides/screenshots",
+              "guides/design-extraction",
+              "guides/ai-design-specs",
+              "guides/async-jobs",
+              "guides/crawling"
+            ]
+          },
+          {
+            "group": "Scale and delivery",
+            "pages": [
+              "guides/batches",
+              "guides/scheduling",
+              "guides/storage",
+              "guides/caching"
+            ]
+          },
+          {
+            "group": "Reliability",
+            "pages": [
+              "operations/errors",
+              "operations/rate-limits",
+              "operations/limits"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "icon": "terminal",
+        "groups": [
+          { "group": "Overview", "pages": ["api-reference/overview"] },
+          {
+            "group": "Endpoints",
+            "openapi": {
+              "source": "api-reference/openapi.json",
+              "directory": "api-reference/endpoints"
+            }
+          }
+        ]
+      },
+      {
+        "tab": "Changelog",
+        "icon": "clock-rotate-left",
+        "groups": [
+          { "group": "Product updates", "pages": ["changelog"] }
+        ]
+      }
+    ]
+  }
+}
