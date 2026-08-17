@@ -9,8 +9,8 @@
     "dark": "#2FA7DC"
   },
   "logo": {
-    "light": "/assets/scrinly-light.png",
-    "dark": "/assets/scrinly-accent.png"
+    "light": "/assets/logo-dark.svg",
+    "dark": "/assets/logo-light.svg"
   },
   "favicon": "/assets/favicon.png",
   "navbar": {
