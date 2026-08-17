@@ -56,7 +56,6 @@ const expected = new Set([
   'POST /render/snapshot',
   'GET /render/screenshot',
   'POST /render/screenshot',
-  'POST /design/spec',
   'POST /render/batch',
   'POST /render/smart-batch',
   'GET /status/{jobId}',

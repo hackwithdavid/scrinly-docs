@@ -20,7 +20,7 @@ Batch requests may return `207`; inspect each item.
 
 ## AI partial results
 
-An AI-spec request can return HTTP `200` with `status:"design_only"`. Rendering succeeded, so the response includes the snapshot and projected design, but `spec` is `null` and `specError` explains the provider, timeout, truncation, or grounding failure. The AI portion is refunded according to the published tariff.
+An interpreted blueprint can return HTTP `200` with `status:"blueprint_only"`. The capture succeeded, so the response includes the snapshot, the design and the full blueprint, but `blueprint.interpretation` is `null` and `blueprint.interpretationError` explains the provider, timeout, truncation, or grounding failure. Only the interpretation credits are refunded — the blueprint was delivered.
 
 This is not a transport error. Save the useful design result and decide whether to retry generation. A URL retry can reuse the account-scoped snapshot and avoid another browser render.
 

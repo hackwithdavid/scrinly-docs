@@ -3,7 +3,7 @@
   "info": {
     "title": "Scrinly Browser API",
     "version": "2026-08-14",
-    "description": "Public API for browser rendering, screenshots, structured extraction, grounded AI design specifications, batches, jobs, crawls, schedules, and usage."
+    "description": "Public API for browser rendering, screenshots, structured extraction, grounded page-reconstruction blueprints, batches, jobs, crawls, schedules, and usage."
   },
   "servers": [
     { "url": "https://api.scrinly.com", "description": "Production" }
@@ -13,7 +13,6 @@
   ],
   "tags": [
     { "name": "Rendering", "description": "Synchronous and asynchronous browser renders." },
-    { "name": "Design specs", "description": "Grounded design specifications generated from a page or submitted design extraction." },
     { "name": "Batches", "description": "Create multiple asynchronous render jobs." },
     { "name": "Jobs", "description": "Inspect and retry account-owned jobs." },
     { "name": "Crawls", "description": "Traverse a site and collect page results." },
@@ -42,9 +41,9 @@
     },
     "/render/snapshot": {
       "get": {
-        "tags": ["Rendering", "Design specs"],
+        "tags": ["Rendering"],
         "summary": "Capture a page snapshot",
-        "description": "Extracts metadata and selected page content. `spec=true` is synchronous, implies design extraction, and cannot be combined with async or webhook delivery. The legacy `api_key` query credential is discouraged because URLs can leak through logs, browser history, proxies, and analytics.",
+        "description": "Extracts metadata and selected page content. `blueprint=true` is synchronous, implies design extraction, and cannot be combined with async or webhook delivery. The legacy `api_key` query credential is discouraged because URLs can leak through logs, browser history, proxies, and analytics.",
         "operationId": "getSnapshot",
         "security": [{ "BearerAuth": [] }, { "LegacyQueryKey": [] }],
         "parameters": [
@@ -58,10 +57,10 @@
           { "$ref": "#/components/parameters/Colors" },
           { "$ref": "#/components/parameters/Structure" },
           { "$ref": "#/components/parameters/Design" },
-          { "$ref": "#/components/parameters/Spec" },
           { "$ref": "#/components/parameters/Blueprint" },
           { "$ref": "#/components/parameters/BlueprintViewports" },
           { "$ref": "#/components/parameters/BlueprintScreenshots" },
+          { "$ref": "#/components/parameters/Interpret" },
           { "$ref": "#/components/parameters/Provider" },
           { "$ref": "#/components/parameters/Refresh" },
           { "$ref": "#/components/parameters/Async" },
@@ -79,7 +78,7 @@
         }
       },
       "post": {
-        "tags": ["Rendering", "Design specs"],
+        "tags": ["Rendering"],
         "summary": "Capture a page snapshot",
         "operationId": "createSnapshot",
         "parameters": [{ "$ref": "#/components/parameters/ProviderApiKey" }],
@@ -141,28 +140,6 @@
           "401": { "$ref": "#/components/responses/Unauthorized" },
           "402": { "$ref": "#/components/responses/PaymentRequired" },
           "403": { "$ref": "#/components/responses/Forbidden" }
-        }
-      }
-    },
-    "/design/spec": {
-      "post": {
-        "tags": ["Design specs"],
-        "summary": "Generate a specification from design data",
-        "description": "Projects up to 2 MiB of submitted design JSON and generates a grounded Markdown specification. Raw design input is not echoed. Provider credentials are accepted only in the request header.",
-        "operationId": "createInlineDesignSpec",
-        "parameters": [{ "$ref": "#/components/parameters/ProviderApiKey" }],
-        "requestBody": {
-          "required": true,
-          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/InlineSpecRequest" } } }
-        },
-        "responses": {
-          "200": { "$ref": "#/components/responses/InlineSpecResult" },
-          "400": { "$ref": "#/components/responses/BadRequest" },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "402": { "$ref": "#/components/responses/PaymentRequired" },
-          "403": { "$ref": "#/components/responses/Forbidden" },
-          "413": { "$ref": "#/components/responses/PayloadTooLarge" },
-          "503": { "$ref": "#/components/responses/ProviderUnavailable" }
         }
       }
     },
@@ -448,12 +425,12 @@
       "Colors": { "name": "colors", "in": "query", "schema": { "type": "boolean", "default": false } },
       "Structure": { "name": "structure", "in": "query", "schema": { "type": "boolean", "default": false } },
       "Design": { "name": "design", "in": "query", "schema": { "type": "boolean", "default": false } },
-      "Spec": { "name": "spec", "in": "query", "schema": { "type": "boolean", "default": false }, "description": "Generate a synchronous AI specification and imply `design=true`." },
-      "Blueprint": { "name": "blueprint", "in": "query", "schema": { "type": "boolean", "default": false }, "description": "Return a reconstruction blueprint: labelled page regions carrying the motion, repeating components and generated stylesheets needed to rebuild the page. Implies `design=true`, requires synchronous mode, and cannot be combined with `spec=true`. Adds 6 credits." },
+      "Interpret": { "name": "interpret", "in": "query", "schema": { "type": "boolean", "default": false }, "description": "Have a model read the blueprint back as a grounded Markdown document. Requires `blueprint=true`. Only a sanitised projection of the blueprint is sent to the provider: page copy, selectors and URLs are removed first. Adds 3 credits, or 1 with your own provider key." },
+      "Blueprint": { "name": "blueprint", "in": "query", "schema": { "type": "boolean", "default": false }, "description": "Return a reconstruction blueprint: labelled page regions carrying the motion, repeating components and generated stylesheets needed to rebuild the page. Implies `design=true`, requires synchronous mode, and refuses async or webhook delivery. Adds 6 credits." },
       "BlueprintViewports": { "name": "viewports", "in": "query", "schema": { "type": "string", "pattern": "^(desktop|mobile)(,(desktop|mobile))*$", "default": "desktop,mobile" }, "description": "Comma-separated viewports to capture, widest first — the first is the one regions and skeletons are measured from. Only valid with `blueprint=true`; rejected otherwise rather than ignored." },
       "BlueprintScreenshots": { "name": "screenshots", "in": "query", "schema": { "type": "boolean", "default": true }, "description": "Store one screenshot per viewport, taken in the page session the capture already opened. Set false to run a blueprint with no storage bucket configured. Only valid with `blueprint=true`." },
       "Provider": { "name": "provider", "in": "query", "schema": { "$ref": "#/components/schemas/Provider" } },
-      "Refresh": { "name": "refresh", "in": "query", "schema": { "type": "boolean", "default": false }, "description": "Bypass snapshot and specification caches." },
+      "Refresh": { "name": "refresh", "in": "query", "schema": { "type": "boolean", "default": false }, "description": "Bypass the interpretation cache and regenerate the document. The capture always runs." },
       "Async": { "name": "async", "in": "query", "schema": { "type": "boolean", "default": false } },
       "Timeout": { "name": "timeout", "in": "query", "schema": { "type": "integer", "minimum": 10, "maximum": 60, "default": 30 } },
       "Format": { "name": "format", "in": "query", "schema": { "type": "string", "enum": ["jpg", "png"], "default": "jpg" } },
@@ -478,12 +455,12 @@
       "CreditsCharged": { "description": "Credits charged before refunds.", "schema": { "type": "integer", "minimum": 0 } },
       "CreditsRefunded": { "description": "Credits refunded by this request.", "schema": { "type": "integer", "minimum": 0 } },
       "CreditsRemaining": { "description": "Credits left in the current account period.", "schema": { "type": "integer", "minimum": 0 } },
-      "LlmProvider": { "description": "Selected AI provider for specification responses.", "schema": { "type": "string", "enum": ["deepseek", "openai"] } },
+      "LlmProvider": { "description": "Selected AI provider for the interpretation.", "schema": { "type": "string", "enum": ["deepseek", "openai"] } },
       "RetryAfter": { "description": "Seconds to wait before retrying.", "schema": { "type": "integer", "minimum": 1 } }
     },
     "responses": {
       "SnapshotResult": {
-        "description": "Snapshot, specification, or `design_only` partial result.",
+        "description": "Snapshot, optionally carrying a blueprint and its interpretation. `blueprint_only` reports a capture that succeeded with a failed interpretation.",
         "headers": {
           "X-Credits-Charged": { "$ref": "#/components/headers/CreditsCharged" },
           "X-Credits-Refunded": { "$ref": "#/components/headers/CreditsRefunded" },
@@ -492,21 +469,7 @@
         },
         "content": {
           "application/json": {
-            "schema": { "oneOf": [{ "$ref": "#/components/schemas/SnapshotResponse" }, { "$ref": "#/components/schemas/DesignOnlyResponse" }] }
-          }
-        }
-      },
-      "InlineSpecResult": {
-        "description": "Generated specification or a refunded `design_only` partial response.",
-        "headers": {
-          "X-Credits-Charged": { "$ref": "#/components/headers/CreditsCharged" },
-          "X-Credits-Refunded": { "$ref": "#/components/headers/CreditsRefunded" },
-          "X-Credits-Remaining": { "$ref": "#/components/headers/CreditsRemaining" },
-          "X-Scrinly-LLM-Provider": { "$ref": "#/components/headers/LlmProvider" }
-        },
-        "content": {
-          "application/json": {
-            "schema": { "oneOf": [{ "$ref": "#/components/schemas/InlineSpecResponse" }, { "$ref": "#/components/schemas/InlineDesignOnlyResponse" }] }
+            "schema": { "$ref": "#/components/schemas/SnapshotResponse" }
           }
         }
       },
@@ -544,9 +507,8 @@
       "PaymentRequired": { "description": "Credit limit reached", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
       "Forbidden": { "description": "Account is deactivated", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
       "NotFound": { "description": "Resource not found for this account", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
-      "PayloadTooLarge": { "description": "Submitted design JSON exceeds 2 MiB", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
       "RateLimited": { "description": "Rate limited", "headers": { "Retry-After": { "$ref": "#/components/headers/RetryAfter" } }, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
-      "ProviderUnavailable": { "description": "Selected platform-funded AI provider is not configured", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SpecError" } } } }
+      "ProviderUnavailable": { "description": "Selected platform-funded AI provider is not configured", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/InterpretationError" } } } }
     },
     "schemas": {
       "HttpUrl": { "type": "string", "format": "uri", "maxLength": 2048, "pattern": "^https?://" },
@@ -619,10 +581,10 @@
               "colors": { "type": "boolean", "default": false },
               "structure": { "type": "boolean", "default": false },
               "design": { "type": "boolean", "default": false },
-              "spec": { "type": "boolean", "default": false, "description": "Implies design and requires synchronous mode." },
-              "blueprint": { "type": "boolean", "default": false, "description": "Implies design, requires synchronous mode, and cannot be combined with spec. Adds 6 credits." },
+              "blueprint": { "type": "boolean", "default": false, "description": "Implies design and requires synchronous mode. Adds 6 credits." },
               "viewports": { "type": "array", "items": { "type": "string", "enum": ["desktop", "mobile"] }, "default": ["desktop", "mobile"], "description": "Widest first. Only valid with blueprint=true." },
               "screenshots": { "type": "boolean", "default": true, "description": "One stored screenshot per viewport. Only valid with blueprint=true." },
+              "interpret": { "type": "boolean", "default": false, "description": "Generate a grounded prose reading of the blueprint. Only valid with blueprint=true. Adds 3 credits, or 1 with your own provider key." },
               "provider": { "$ref": "#/components/schemas/Provider" },
               "refresh": { "type": "boolean", "default": false },
               "async": { "type": "boolean", "default": false }
@@ -690,16 +652,6 @@
             }
           }
         ]
-      },
-      "InlineSpecRequest": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": ["design"],
-        "properties": {
-          "design": { "type": "object", "additionalProperties": true, "description": "Design extraction JSON. Entire request body is limited to 2 MiB." },
-          "provider": { "$ref": "#/components/schemas/Provider" },
-          "refresh": { "type": "boolean", "default": false }
-        }
       },
       "CrawlRequest": {
         "type": "object",
@@ -791,11 +743,6 @@
           "net": { "type": "integer", "minimum": 0 }
         }
       },
-      "CacheState": {
-        "type": "object",
-        "required": ["snapshot", "spec"],
-        "properties": { "snapshot": { "type": "boolean" }, "spec": { "type": "boolean" } }
-      },
       "Design": {
         "type": "object",
         "description": "Deterministic extraction of authored tokens and observed design signals.",
@@ -812,37 +759,44 @@
       },
       "ProviderMetadata": {
         "type": "object",
-        "required": ["provider", "model", "credentialMode"],
+        "required": ["label", "model", "credentialMode"],
         "properties": {
-          "provider": { "$ref": "#/components/schemas/Provider" },
+          "label": { "$ref": "#/components/schemas/Provider" },
           "model": { "type": "string", "readOnly": true, "description": "Server-selected model." },
+          "host": { "type": "string" },
           "credentialMode": { "type": "string", "enum": ["platform", "byok"] },
-          "dataPolicy": { "type": "string" },
-          "dataResidency": { "type": ["string", "null"] }
+          "dataPolicy": { "type": "object", "additionalProperties": true, "description": "Training, retention and residency terms for the selected provider." },
+          "dataResidency": { "type": ["string", "null"] },
+          "settings": { "type": "object", "additionalProperties": true },
+          "latencyMs": { "type": "integer", "minimum": 0 },
+          "finishReason": { "type": ["string", "null"] }
         }
       },
       "TokenUsage": {
         "type": "object",
         "properties": {
-          "input": { "type": "integer", "minimum": 0 },
-          "output": { "type": "integer", "minimum": 0 },
-          "total": { "type": "integer", "minimum": 0 },
-          "cachedInput": { "type": "integer", "minimum": 0 },
-          "provider": { "type": "object", "additionalProperties": true }
+          "inputTokens": { "type": "integer", "minimum": 0 },
+          "outputTokens": { "type": "integer", "minimum": 0 },
+          "totalTokens": { "type": "integer", "minimum": 0 },
+          "cacheHitTokens": { "type": "integer", "minimum": 0 },
+          "cacheMissTokens": { "type": "integer", "minimum": 0 },
+          "reasoningTokens": { "type": "integer", "minimum": 0 },
+          "providerDetails": { "type": "object", "additionalProperties": true }
         }
       },
       "Grounding": {
         "type": "object",
-        "required": ["status", "unknownLiteralCount"],
+        "description": "Whether every CSS literal in the document traced back to the projection. More than five untraceable literals, a missing heading, or truncation refuses the generation rather than returning it.",
+        "required": ["status", "unknownLiterals"],
         "properties": {
           "status": { "type": "string", "enum": ["clean", "flagged"] },
-          "unknownLiteralCount": { "type": "integer", "minimum": 0, "maximum": 5 },
-          "missingHeadings": { "type": "array", "items": { "type": "string" } }
+          "unknownLiterals": { "type": "array", "maxItems": 5, "items": { "type": "string" }, "description": "Literals absent from the projection. Empty when status is clean." }
         }
       },
-      "Spec": {
+      "Interpretation": {
         "type": "object",
-        "required": ["document", "promptVersion", "sections", "grounding", "coverage", "provider", "usage", "cacheStatus"],
+        "description": "A grounded Markdown reading of the blueprint, present only with `interpret=true`. Generated from a sanitised projection — page copy, selectors and URLs are removed before anything reaches the provider — and refused rather than returned if it cites a value the projection does not contain.",
+        "required": ["document", "promptVersion", "sections", "grounding", "coverage", "provider", "usage", "cache"],
         "properties": {
           "document": { "type": "string", "description": "Grounded Markdown document." },
           "promptVersion": { "type": "string" },
@@ -851,7 +805,11 @@
           "coverage": { "type": "object", "additionalProperties": true },
           "provider": { "$ref": "#/components/schemas/ProviderMetadata" },
           "usage": { "$ref": "#/components/schemas/TokenUsage" },
-          "cacheStatus": { "type": "string", "enum": ["hit", "miss"] }
+          "cache": {
+            "type": "object",
+            "required": ["hit"],
+            "properties": { "hit": { "type": "boolean", "description": "True when this document came from the interpretation cache." } }
+          }
         }
       },
       "BulkScheduleResponse": {
@@ -930,7 +888,9 @@
           },
           "truncated": { "type": "array", "items": { "type": "string" }, "description": "Caps that were hit, e.g. `region-skeleton`." },
           "stats": { "type": "object", "additionalProperties": true, "description": "regions, labelled, nodesCaptured, nodesInSkeleton, motion, orphanedMotion, components." },
-          "capturedAt": { "type": "string", "format": "date-time" }
+          "capturedAt": { "type": "string", "format": "date-time" },
+          "interpretation": { "$ref": "#/components/schemas/Interpretation" },
+          "interpretationError": { "$ref": "#/components/schemas/InterpretationError" }
         }
       },
       "BlueprintRegion": {
@@ -1030,7 +990,7 @@
           }
         }
       },
-      "SpecError": {
+      "InterpretationError": {
         "type": "object",
         "required": ["type", "message", "retryable"],
         "properties": {
@@ -1047,7 +1007,7 @@
         "required": ["success", "type", "url", "metadata", "renderTime"],
         "properties": {
           "success": { "const": true },
-          "status": { "type": "string", "enum": ["completed"] },
+          "status": { "type": "string", "enum": ["completed", "blueprint_only"], "description": "`blueprint_only` means the capture succeeded and the interpretation did not — see `blueprint.interpretationError`. The blueprint is present and its credits are not refunded." },
           "type": { "const": "snapshot" },
           "url": { "$ref": "#/components/schemas/HttpUrl" },
           "metadata": { "type": "object", "additionalProperties": true },
@@ -1060,50 +1020,11 @@
           "colors": { "type": "array", "items": { "type": "object", "additionalProperties": true } },
           "structure": { "type": "object", "additionalProperties": true },
           "design": { "$ref": "#/components/schemas/Design" },
-          "spec": { "$ref": "#/components/schemas/Spec" },
           "blueprint": { "$ref": "#/components/schemas/Blueprint" },
-          "cache": { "$ref": "#/components/schemas/CacheState" },
           "credits": { "$ref": "#/components/schemas/Credits" },
           "renderTime": { "type": "integer", "minimum": 0 },
           "startedAt": { "type": "string", "format": "date-time" },
           "completedAt": { "type": "string", "format": "date-time" }
-        }
-      },
-      "DesignOnlyResponse": {
-        "allOf": [
-          { "$ref": "#/components/schemas/SnapshotResponse" },
-          {
-            "type": "object",
-            "required": ["status", "design", "spec", "specError", "cache", "credits"],
-            "properties": {
-              "status": { "const": "design_only" },
-              "spec": { "type": "null" },
-              "specError": { "$ref": "#/components/schemas/SpecError" }
-            }
-          }
-        ]
-      },
-      "InlineSpecResponse": {
-        "type": "object",
-        "required": ["success", "status", "spec", "cache", "credits"],
-        "properties": {
-          "success": { "const": true },
-          "status": { "const": "completed" },
-          "spec": { "$ref": "#/components/schemas/Spec" },
-          "cache": { "$ref": "#/components/schemas/CacheState" },
-          "credits": { "$ref": "#/components/schemas/Credits" }
-        }
-      },
-      "InlineDesignOnlyResponse": {
-        "type": "object",
-        "required": ["success", "status", "spec", "specError", "cache", "credits"],
-        "properties": {
-          "success": { "const": true },
-          "status": { "const": "design_only" },
-          "spec": { "type": "null" },
-          "specError": { "$ref": "#/components/schemas/SpecError" },
-          "cache": { "$ref": "#/components/schemas/CacheState" },
-          "credits": { "$ref": "#/components/schemas/Credits" }
         }
       },
       "StoredMedia": {

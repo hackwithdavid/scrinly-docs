@@ -1,6 +1,6 @@
 ---
 title: "Credits and billing"
-description: "Understand render costs, AI-spec tariffs, charging, and refunds."
+description: "Understand render costs, interpretation tariffs, charging, and refunds."
 ---
 
 Scrinly charges credits before starting work so exhausted accounts cannot consume browser time. Failed renders are refunded.
@@ -19,23 +19,25 @@ Scrinly charges credits before starting work so exhausted accounts cannot consum
 
 Batch requests charge one credit per submitted URL and refund URLs that fail validation or rendering. Scheduled requests are charged when they fire, not when the schedule is created.
 
-## AI design specifications
+## Blueprint interpretation
 
-| Path | Platform credential | BYOK |
+`interpret=true` adds a grounded prose reading of the blueprint. It is an increment on the blueprint, not a separate price:
+
+| Request | Platform credential | BYOK |
 | --- | ---: | ---: |
-| Cold URL snapshot and spec | 5 | 2 |
-| Cached snapshot requiring generation | 3 | 1 |
-| Completed snapshot/spec cache hit | 1 | 1 |
-| Inline design generation | 3 | 1 |
-| Inline spec cache hit | 1 | 1 |
+| Blueprint | 8 | 8 |
+| Blueprint plus interpretation | 11 | 9 |
+| Blueprint plus cached interpretation | 9 | 9 |
 
-`refresh=true` bypasses both AI caches. It costs 5 credits for a platform-funded URL request, 2 for a BYOK URL request, 3 for platform-funded inline design, or 1 for BYOK inline design.
+There is no tier below 9, because the browser work happens on every request and only the model call can be discounted. The interpretation cache is keyed on a projection of the blueprint rather than the URL, so an unchanged page reuses its document even though each capture differs.
 
-If the browser succeeds but AI generation fails, URL requests keep the render portion and refund the AI portion. Inline requests refund the complete AI charge. Responses expose the calculation as:
+`refresh=true` bypasses the interpretation cache and regenerates at the full tariff. The capture always runs.
+
+If the capture succeeds and the model call does not, the response is HTTP `200` with `status:"blueprint_only"`. You keep the blueprint and only the interpretation credits come back:
 
 ```json
 {
-  "credits": { "charged": 5, "refunded": 3, "net": 2 }
+  "credits": { "charged": 11, "refunded": 3, "net": 8 }
 }
 ```
 

@@ -14,7 +14,7 @@ curl --get "https://api.scrinly.com/render/snapshot" \
   --data-urlencode "blueprint=true"
 ```
 
-A blueprint is a snapshot with more in it, not a different kind of call — the same way `design=true` and `spec=true` work. Everything a plain snapshot returns is still at the top level, and the reconstruction data is added under one `blueprint` key.
+A blueprint is a snapshot with more in it, not a different kind of call — the same way `design=true` works. Everything a plain snapshot returns is still at the top level, and the reconstruction data is added under one `blueprint` key.
 
 It costs **8 credits** and typically takes 10–15 seconds: it visits the page at two viewports and scrolls through each, which is more browser work than a screenshot and less than a crawl.
 
@@ -122,6 +122,60 @@ Every motion, state and responsive delta references a node id from the region it
 
 Each record reports the `tier` that produced it and a matching `confidence`. Because the backbone is `document.getAnimations()`, an effect is described the same way whichever library produced it. Where an animation has a named `@keyframes` rule, the record points at it with `keyframesRef` rather than repeating frames already in `keyframes.css`.
 
+## Optional: have a model read it back
+
+`interpret=true` adds a grounded Markdown document to the blueprint — the page described in prose, region by region, for an engineer who has to rebuild it and cannot see it.
+
+```bash
+curl --get "https://api.scrinly.com/render/snapshot" \
+  --header "Authorization: Bearer $SCRINLY_API_KEY" \
+  --data-urlencode "url=https://example.com" \
+  --data-urlencode "blueprint=true" \
+  --data-urlencode "interpret=true"
+```
+
+```json
+{
+  "blueprint": {
+    "interpretation": {
+      "document": "## Executive summary\nObserved: six regions…",
+      "sections": { "Page structure": "…", "Motion and interaction": "…" },
+      "grounding": { "status": "clean", "unknownLiterals": [] },
+      "promptVersion": "blueprint-interpretation-v1",
+      "provider": { "label": "deepseek", "model": "…", "credentialMode": "platform" },
+      "usage": { "inputTokens": 4102, "outputTokens": 1180 },
+      "cache": { "hit": false }
+    }
+  }
+}
+```
+
+It costs 3 credits on top of the blueprint's 8, or 1 with your own key. Bring your own with the `X-Scrinly-Provider-API-Key` header and pick the model family with `provider`.
+
+### Only a projection is sent
+
+The model never sees the page. It sees a **projection** of the blueprint, capped at 16 KB, from which page copy, headings, body text, selectors, screenshot URLs and metadata have all been removed. What crosses is the part that is both stable and checkable: region labels and their evidence, motion types with their triggers and timings, computed styles, tokens, breakpoints and detected technologies.
+
+<Note>
+  The projection is also why the cache works. It excludes everything that differs between two captures of the same page — node ids, timestamps, a pixel of measurement jitter — so an unchanged page hashes identically and reuses its document. That is the difference between 11 credits and 9.
+</Note>
+
+### It is refused rather than trusted
+
+Every CSS literal in the document must appear in the projection it came from. A duration, colour or breakpoint the model invented is caught, and enough of them fails the generation outright rather than returning a confident document with made-up numbers in it.
+
+`grounding.status` reports which happened:
+
+| Status | Meaning |
+|---|---|
+| `clean` | every literal traced back to an observation |
+| `flagged` | up to five could not be traced; they are listed in `unknownLiterals` |
+| — | more than five, a missing heading, or truncation refuses the generation and refunds it |
+
+### When the model fails
+
+The blueprint is yours either way. A provider outage, timeout or grounding refusal returns HTTP `200` with `status: "blueprint_only"`, the full blueprint, `interpretation: null`, and an `interpretationError` explaining which of those happened. Only the interpretation credits are refunded — the capture succeeded and is in the response.
+
 ## What a blueprint cannot do
 
 <Warning>
@@ -137,6 +191,7 @@ Every blueprint carries a `limitations` array naming what was found but not expl
 | Parameter | Type | Default | Description |
 |---|---|---|---|
 | `blueprint` | bool | `false` | required for everything below |
+| `interpret` | bool | `false` | add a prose reading of the blueprint |
 | `viewports` | string | `desktop,mobile` | which captures to take, widest first |
 | `screenshots` | bool | `true` | set `false` to run without object storage |
 | `markdown` | bool | `false` | page content as markdown |
@@ -146,8 +201,8 @@ Every blueprint carries a `limitations` array naming what was found but not expl
 
 `design=true` is implied — the stylesheets are generated from it.
 
-`viewports` and `screenshots` apply only to a blueprint. Sending either without `blueprint=true` is a 400 rather than being silently ignored, so a typo in the flag name cannot cost you a capture you thought you had asked for.
+`interpret`, `viewports` and `screenshots` apply only to a blueprint. Sending either without `blueprint=true` is a 400 rather than being silently ignored, so a typo in the flag name cannot cost you a capture you thought you had asked for.
 
 <Warning>
-  A blueprint cannot be combined with `async` or `webhookUrl` — it is synchronous by design. It also cannot yet be combined with `spec=true`: one page load could serve both, but the two have separate credit tariffs that cannot simply be added, so the combination is rejected until that has a definition rather than an estimate.
+  A blueprint cannot be combined with `async` or `webhookUrl` — it is synchronous by design.
 </Warning>

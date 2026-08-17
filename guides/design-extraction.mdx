@@ -24,7 +24,7 @@ Design extraction loads stylesheets while continuing to block font binaries, ima
 - **Libraries:** confidence-ranked signals for common animation and interaction libraries.
 - **Coverage:** stylesheet counts, bytes and rules inspected, truncation, and omitted counts.
 
-Raw `data:` and `blob:` font URLs are dropped. HTTP(S) sources are length- and count-capped for the extraction response, while AI projections remove font URLs completely and retain only delivery kinds such as `self-hosted`, `google-fonts`, or `cdn`.
+Raw `data:` and `blob:` font URLs are dropped. HTTP(S) sources are length- and count-capped for the extraction response, while the projection sent to a model for [blueprint interpretation](/guides/blueprints) removes font URLs completely and retains only delivery kinds such as `self-hosted`, `google-fonts`, or `cdn`.
 
 <Note>
   Design evidence reflects the page's initial authored state. It is collected before click or scroll interactions, so scroll-triggered variants may not be sampled.

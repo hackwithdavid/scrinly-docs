@@ -42,13 +42,13 @@ https://api.scrinly.com/render/screenshot?url=https%3A%2F%2Fexample.com&api_key=
 
 ## Provider keys
 
-AI design-spec requests may include an ephemeral provider key in a separate header:
+A request that interprets a blueprint may include an ephemeral provider key in a separate header:
 
 ```http
 X-Scrinly-Provider-API-Key: your_provider_key
 ```
 
-`Authorization` still contains the Scrinly key. Provider keys are accepted only in this header and are not stored, echoed, or logged. See [AI design specifications](/guides/ai-design-specs).
+`Authorization` still contains the Scrinly key. Provider keys are accepted only in this header and are not stored, echoed, or logged. See [Page blueprints](/guides/blueprints).
 
 ## Authentication responses
 
