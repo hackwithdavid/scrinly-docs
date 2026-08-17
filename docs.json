@@ -15,7 +15,10 @@
   "favicon": "/favicon.png",
   "navbar": {
     "links": [
-      { "label": "Scrinly home", "href": "https://scrinly.com" }
+      {
+        "label": "Scrinly home",
+        "href": "https://scrinly.com"
+      }
     ],
     "primary": {
       "type": "button",
@@ -46,6 +49,7 @@
               "guides/design-extraction",
               "guides/ai-design-specs",
               "guides/async-jobs",
+              "guides/blueprints",
               "guides/crawling"
             ]
           },
@@ -72,7 +76,12 @@
         "tab": "API Reference",
         "icon": "terminal",
         "groups": [
-          { "group": "Overview", "pages": ["api-reference/overview"] },
+          {
+            "group": "Overview",
+            "pages": [
+              "api-reference/overview"
+            ]
+          },
           {
             "group": "Endpoints",
             "openapi": {
@@ -86,7 +95,12 @@
         "tab": "Changelog",
         "icon": "clock-rotate-left",
         "groups": [
-          { "group": "Product updates", "pages": ["changelog"] }
+          {
+            "group": "Product updates",
+            "pages": [
+              "changelog"
+            ]
+          }
         ]
       }
     ]

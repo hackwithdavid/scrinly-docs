@@ -11,6 +11,7 @@ Scrinly charges credits before starting work so exhausted accounts cannot consum
 | --- | ---: |
 | Snapshot extraction | 1 |
 | Design extraction | 2 total |
+| Blueprint | 8 total |
 | Screenshot | 1 |
 | Screenshot plus ordinary extraction | 2 |
 | Screenshot plus design extraction | 2 |
@@ -43,6 +44,10 @@ If the browser succeeds but AI generation fails, URL requests keep the render po
 Call `GET /usage` or inspect `X-Scrinly-Credits-Used` and `X-Scrinly-Credits-Limit` on render responses.
 
 The [dashboard](https://app.scrinly.com) additionally shows the last 30 days broken down by day and endpoint, including failed requests and the credits refunded for them.
+
+## Page blueprints
+
+`blueprint=true` on a snapshot adds **6 credits**, so a blueprint comes to **8** in total: 1 for the extraction, 1 for the design it implies, and 6 for the blueprint itself. One request captures the page at two viewports with stepped scrolling in each, which is more browser work than a screenshot and less than a crawl. It is charged before the capture starts and refunded in full if nothing is produced.
 
 ## Free plan and renewals
 

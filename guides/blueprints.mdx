@@ -1,0 +1,153 @@
+---
+title: "Page blueprints"
+description: "One synchronous snapshot returning everything an AI agent needs to rebuild a landing page — screenshots, content, layout, motion, responsive CSS and the detected stack."
+---
+
+`blueprint=true` on a snapshot returns everything an AI coding agent needs to rebuild the page: a screenshot at each viewport, the content as markdown, the region structure with real geometry, the motion vocabulary, ready-to-use stylesheets, and the technologies it was built with.
+
+It is designed to be called by an agent — Cursor, Claude Code, v0 — mid-task, so it is **synchronous**. One request, one response, no polling.
+
+```bash
+curl --get "https://api.scrinly.com/render/snapshot" \
+  --header "Authorization: Bearer $SCRINLY_API_KEY" \
+  --data-urlencode "url=https://example.com" \
+  --data-urlencode "blueprint=true"
+```
+
+A blueprint is a snapshot with more in it, not a different kind of call — the same way `design=true` and `spec=true` work. Everything a plain snapshot returns is still at the top level, and the reconstruction data is added under one `blueprint` key.
+
+It costs **8 credits** and typically takes 10–15 seconds: it visits the page at two viewports and scrolls through each, which is more browser work than a screenshot and less than a crawl.
+
+## What comes back
+
+```json
+{
+  "success": true,
+  "type": "snapshot",
+  "url": "https://example.com",
+
+  "metadata":  { "title": "…", "description": "…" },
+  "design":    { "tokens": …, "color": …, "typography": …, "breakpoints": … },
+
+  "blueprint": {
+    "version": 1,
+    "viewports": [
+      { "name": "desktop", "width": 1440, "screenshot": "https://…/desktop.jpg" },
+      { "name": "mobile",  "width": 390,  "screenshot": "https://…/mobile.jpg" }
+    ],
+    "regions":     [ … ],
+    "repeaters":   [ … ],
+    "tech":        [ … ],
+    "stylesheets": { "tokens.css": "…", "keyframes.css": "…", … },
+    "limitations": [ … ],
+    "stats":       { "regions": 8, "labelled": 6, "motion": 34, "components": 3 }
+  },
+
+  "renderTime": 11204
+}
+```
+
+`url`, `metadata`, `design` and `renderTime` are the snapshot's own fields and are **not** repeated inside `blueprint`. Add `markdown=true` and `links=true` to get those too — they are opt-in on a blueprint exactly as they are on any other snapshot.
+
+Everything is inline except the screenshots, which are written to your bucket because images cannot ride inside JSON without base64 inflating them by a third. A typical response is 20–150 KB — small enough to hand straight to a model.
+
+<Note>
+  A blueprint reuses one page load for all of it. The markdown, metadata and links are produced by the same visit as the layout and motion capture, so you never need a second call for the same URL.
+</Note>
+
+## The stylesheets are inline
+
+Data alone loses fidelity, because an agent has to re-derive valid CSS from JSON and that is where detail goes missing. So `blueprint.stylesheets` carries stylesheets built from observed values:
+
+```css
+/* stylesheets["keyframes.css"] */
+@keyframes fadeInUp {
+  0%   { opacity: 0; transform: translateY(24px); }
+  100% { opacity: 1; transform: none; }
+}
+```
+
+`tokens.css` holds resolved custom properties, `states.css` the observed `:hover`, `:focus-visible` and `:active` rules, and `responsive.css` the layout differences between the desktop and mobile captures. A file that would be empty is omitted.
+
+<Warning>
+  `responsive.css` is built from **two rendered states compared**, not the site's media queries read back. Values that merely track the viewport — computed `width` and `height` — are excluded, because emitting them would pin the layout to one screen size. They remain in the region data as observations.
+</Warning>
+
+## Regions, not a DOM dump
+
+An agent rebuilds a landing page section by section, so the blueprint is organised that way. Each region carries a compact skeleton — the structural nodes that matter, not every wrapper — plus its motion, components and responsive deltas.
+
+```json
+{
+  "id": "n2",
+  "order": 1,
+  "label": "hero",
+  "confidence": "high",
+  "evidence": ["contains the h1", "starts above the fold",
+               "at least 60% of viewport height", "contains a call to action"],
+  "box": [80, 0, 1440, 760],
+  "skeleton": [
+    { "id": "n4", "tag": "h1", "selector": "h1#headline", "text": "…",
+      "box": [200, 24, 900, 62], "layout": { "font-size": "56px" } }
+  ],
+  "components": [{ "repeatOf": "div|card", "count": 3 }],
+  "motion": [
+    { "nodeId": "n12", "type": "fade-up", "confidence": "high",
+      "trigger": { "kind": "scroll-into-view", "scrollPx": 1240, "threshold": 0.2 },
+      "timing": { "durationMs": 600, "easing": "cubic-bezier(0.4, 0, 0.2, 1)" },
+      "modifiers": { "stagger": { "stepMs": 100, "count": 3 } } }
+  ]
+}
+```
+
+`box` is `[top, left, width, height]` in CSS pixels, and skeleton nodes use the same four-element form. Properties equal to the CSS default are dropped rather than restated.
+
+Every motion, state and responsive delta references a node id from the region it belongs to, so **which part of the page does this** is answerable rather than inferred. Anything that cannot be placed appears in `motionOrphans` instead of being silently dropped.
+
+**Labels are inference and carry their evidence.** A region matching nothing comes back `"label": null` with its geometry intact — an unlabelled region is useful, a wrong one is not.
+
+**Repeated components are detected.** Siblings with the same structure and size are reported with a count, which is what lets an agent emit a loop instead of hand-writing twelve near-identical cards.
+
+## Motion is classified
+
+`opacity 0→1` plus `translateY(24px)→0` over 600ms, firing at 20% in view, offset 100ms across three siblings, **is** a fade-up-stagger-on-scroll. The blueprint says so.
+
+| Recovered from | Fidelity |
+|---|---|
+| `document.getAnimations()` — CSS animations, transitions and WAAPI | exact |
+| Class and style toggling observed during scroll | behavioural |
+| GSAP, ScrollTrigger, Webflow interactions, Lottie | configuration |
+| Custom `requestAnimationFrame` maths | sampled curve |
+| WebGL shaders | source only |
+
+Each record reports the `tier` that produced it and a matching `confidence`. Because the backbone is `document.getAnimations()`, an effect is described the same way whichever library produced it. Where an animation has a named `@keyframes` rule, the record points at it with `keyframesRef` rather than repeating frames already in `keyframes.css`.
+
+## What a blueprint cannot do
+
+<Warning>
+  **Application logic is not recovered.** Form validation, pricing calculators, search, checkout and authentication are detected and described, never reproduced. Minified bundles do not give up their logic.
+</Warning>
+
+WebGL is partial: shader source, the library and its parameters are captured, but a working scene cannot be reassembled from intercepted GL calls.
+
+Every blueprint carries a `limitations` array naming what was found but not explained, and `instrumentation.degraded` is true when motion interception failed and the capture fell back to observation only. A partial capture is usable; a partial capture presented as complete would not be.
+
+## Options
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `blueprint` | bool | `false` | required for everything below |
+| `viewports` | string | `desktop,mobile` | which captures to take, widest first |
+| `screenshots` | bool | `true` | set `false` to run without object storage |
+| `markdown` | bool | `false` | page content as markdown |
+| `links` | bool | `false` | unique absolute links |
+| `images` | bool | `false` | image sources |
+| `timeout` | number | `30` | seconds |
+
+`design=true` is implied — the stylesheets are generated from it.
+
+`viewports` and `screenshots` apply only to a blueprint. Sending either without `blueprint=true` is a 400 rather than being silently ignored, so a typo in the flag name cannot cost you a capture you thought you had asked for.
+
+<Warning>
+  A blueprint cannot be combined with `async` or `webhookUrl` — it is synchronous by design. It also cannot yet be combined with `spec=true`: one page load could serve both, but the two have separate credit tariffs that cannot simply be added, so the combination is rejected until that has a definition rather than an estimate.
+</Warning>

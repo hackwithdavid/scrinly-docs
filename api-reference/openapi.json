@@ -59,6 +59,9 @@
           { "$ref": "#/components/parameters/Structure" },
           { "$ref": "#/components/parameters/Design" },
           { "$ref": "#/components/parameters/Spec" },
+          { "$ref": "#/components/parameters/Blueprint" },
+          { "$ref": "#/components/parameters/BlueprintViewports" },
+          { "$ref": "#/components/parameters/BlueprintScreenshots" },
           { "$ref": "#/components/parameters/Provider" },
           { "$ref": "#/components/parameters/Refresh" },
           { "$ref": "#/components/parameters/Async" },
@@ -386,8 +389,8 @@
         "operationId": "createBulkScheduledRenders",
         "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/BulkScheduleRequest" } } } },
         "responses": {
-          "201": { "description": "Schedules created", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ScheduleList" } } } },
-          "207": { "description": "Some schedules were rejected", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/BatchResult" } } } },
+          "200": { "description": "All schedules created", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/BulkScheduleResponse" } } } },
+          "207": { "description": "Some schedules were rejected", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/BulkScheduleResponse" } } } },
           "400": { "$ref": "#/components/responses/BadRequest" },
           "401": { "$ref": "#/components/responses/Unauthorized" }
         }
@@ -446,6 +449,9 @@
       "Structure": { "name": "structure", "in": "query", "schema": { "type": "boolean", "default": false } },
       "Design": { "name": "design", "in": "query", "schema": { "type": "boolean", "default": false } },
       "Spec": { "name": "spec", "in": "query", "schema": { "type": "boolean", "default": false }, "description": "Generate a synchronous AI specification and imply `design=true`." },
+      "Blueprint": { "name": "blueprint", "in": "query", "schema": { "type": "boolean", "default": false }, "description": "Return a reconstruction blueprint: labelled page regions carrying the motion, repeating components and generated stylesheets needed to rebuild the page. Implies `design=true`, requires synchronous mode, and cannot be combined with `spec=true`. Adds 6 credits." },
+      "BlueprintViewports": { "name": "viewports", "in": "query", "schema": { "type": "string", "pattern": "^(desktop|mobile)(,(desktop|mobile))*$", "default": "desktop,mobile" }, "description": "Comma-separated viewports to capture, widest first — the first is the one regions and skeletons are measured from. Only valid with `blueprint=true`; rejected otherwise rather than ignored." },
+      "BlueprintScreenshots": { "name": "screenshots", "in": "query", "schema": { "type": "boolean", "default": true }, "description": "Store one screenshot per viewport, taken in the page session the capture already opened. Set false to run a blueprint with no storage bucket configured. Only valid with `blueprint=true`." },
       "Provider": { "name": "provider", "in": "query", "schema": { "$ref": "#/components/schemas/Provider" } },
       "Refresh": { "name": "refresh", "in": "query", "schema": { "type": "boolean", "default": false }, "description": "Bypass snapshot and specification caches." },
       "Async": { "name": "async", "in": "query", "schema": { "type": "boolean", "default": false } },
@@ -614,6 +620,9 @@
               "structure": { "type": "boolean", "default": false },
               "design": { "type": "boolean", "default": false },
               "spec": { "type": "boolean", "default": false, "description": "Implies design and requires synchronous mode." },
+              "blueprint": { "type": "boolean", "default": false, "description": "Implies design, requires synchronous mode, and cannot be combined with spec. Adds 6 credits." },
+              "viewports": { "type": "array", "items": { "type": "string", "enum": ["desktop", "mobile"] }, "default": ["desktop", "mobile"], "description": "Widest first. Only valid with blueprint=true." },
+              "screenshots": { "type": "boolean", "default": true, "description": "One stored screenshot per viewport. Only valid with blueprint=true." },
               "provider": { "$ref": "#/components/schemas/Provider" },
               "refresh": { "type": "boolean", "default": false },
               "async": { "type": "boolean", "default": false }
@@ -724,10 +733,29 @@
         ]
       },
       "BulkScheduleRequest": {
-        "allOf": [
-          { "$ref": "#/components/schemas/BatchRequest" },
-          { "type": "object", "required": ["scheduleAt"], "properties": { "scheduleAt": { "type": "string", "format": "date-time" } } }
-        ]
+        "type": "object",
+        "description": "One `scheduleAt` per job, not one for the whole request — the point of this endpoint is scheduling different URLs for different times in one call.",
+        "required": ["jobs"],
+        "properties": {
+          "jobs": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 100,
+            "items": {
+              "allOf": [
+                { "$ref": "#/components/schemas/RenderOptions" },
+                {
+                  "type": "object",
+                  "required": ["url", "scheduleAt"],
+                  "properties": {
+                    "url": { "$ref": "#/components/schemas/HttpUrl" },
+                    "scheduleAt": { "type": "string", "format": "date-time", "description": "Must be in the future." }
+                  }
+                }
+              ]
+            }
+          }
+        }
       },
       "RecurringScheduleRequest": {
         "allOf": [
@@ -826,6 +854,182 @@
           "cacheStatus": { "type": "string", "enum": ["hit", "miss"] }
         }
       },
+      "BulkScheduleResponse": {
+        "type": "object",
+        "description": "Per-item scheduling results. `success` is false on a 207: some jobs were rejected and the rest were scheduled.",
+        "required": ["success", "total", "scheduled", "failed", "jobs"],
+        "properties": {
+          "success": { "type": "boolean", "description": "True only when every job was scheduled." },
+          "total": { "type": "integer", "minimum": 0, "description": "Jobs submitted." },
+          "scheduled": { "type": "integer", "minimum": 0 },
+          "failed": { "type": "integer", "minimum": 0 },
+          "jobs": {
+            "type": "array",
+            "description": "The jobs that were scheduled, each keyed back to its index in the request.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "index": { "type": "integer", "minimum": 0 },
+                "id": { "type": "string", "format": "uuid" },
+                "url": { "$ref": "#/components/schemas/HttpUrl" },
+                "scheduledFor": { "type": "string", "format": "date-time" }
+              }
+            }
+          },
+          "errors": {
+            "type": "array",
+            "description": "Present only when at least one job was rejected.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "index": { "type": "integer", "minimum": 0 },
+                "url": { "type": "string" },
+                "error": { "type": "string" }
+              }
+            }
+          }
+        }
+      },
+      "Blueprint": {
+        "type": "object",
+        "description": "Everything needed to rebuild the page, attributed to the parts of the page it belongs to. Motion and responsive layout are filed under regions rather than listed flat, so \"what does the hero do\" is answerable. `url`, `metadata`, `markdown`, `links`, `images` and `design` are not restated here — they are already top-level fields of the same response.",
+        "required": ["version", "viewports", "regions", "limitations", "stats"],
+        "properties": {
+          "version": { "type": "integer", "const": 1 },
+          "viewports": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": { "type": "string", "enum": ["desktop", "mobile"] },
+                "width": { "type": "integer" },
+                "height": { "type": "integer" },
+                "documentHeight": { "type": ["number", "null"] },
+                "screenshot": { "type": ["string", "null"], "format": "uri", "description": "Stored image URL, or null when `screenshots=false`." }
+              }
+            }
+          },
+          "regions": { "type": "array", "items": { "$ref": "#/components/schemas/BlueprintRegion" } },
+          "repeaters": { "type": "array", "items": { "type": "object", "additionalProperties": true }, "description": "Structures repeated across the page — N siblings sharing a shape, which is a component in a loop." },
+          "tech": { "type": "array", "items": { "$ref": "#/components/schemas/BlueprintTech" } },
+          "stylesheets": { "type": "object", "additionalProperties": { "type": "string" }, "description": "Generated CSS, returned inline rather than stored so a blueprint stays one call: `tokens.css`, `keyframes.css`, `states.css`, `responsive.css`. Empty files are omitted." },
+          "motionOrphans": { "type": "array", "items": { "$ref": "#/components/schemas/BlueprintMotion" }, "description": "Animations that could not be filed under a region. Present only when non-empty — an orphan means element identity and the motion readout disagreed, which is surfaced rather than dropped." },
+          "instrumentation": { "type": ["object", "null"], "additionalProperties": true, "description": "Health of the motion capture, including which recovery tiers degraded." },
+          "limitations": {
+            "type": "array",
+            "description": "What was found but could not be explained. Read this before treating a rebuild as complete.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "kind": { "type": "string", "enum": ["webgl", "instrumentation", "screenshots", "application-logic"] },
+                "note": { "type": "string" },
+                "count": { "type": "integer" },
+                "detail": { "type": "array", "items": { "type": "string" } }
+              }
+            }
+          },
+          "truncated": { "type": "array", "items": { "type": "string" }, "description": "Caps that were hit, e.g. `region-skeleton`." },
+          "stats": { "type": "object", "additionalProperties": true, "description": "regions, labelled, nodesCaptured, nodesInSkeleton, motion, orphanedMotion, components." },
+          "capturedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "BlueprintRegion": {
+        "type": "object",
+        "description": "One observed section of the page. Segmentation is measurement; the label is inference, carries its evidence, and is null rather than a guess when the evidence does not support one.",
+        "properties": {
+          "id": { "type": "string", "description": "Matches the `data-scrinly-id` stamped on the captured element, and joins motion to layout." },
+          "order": { "type": "integer", "description": "Document order, top to bottom." },
+          "label": { "type": ["string", "null"], "enum": ["nav", "hero", "features", "logos", "pricing", "testimonials", "faq", "cta", "footer", null] },
+          "confidence": { "type": ["string", "null"], "enum": ["high", "medium", null], "description": "Null whenever `label` is null, including when two regions competed for the same label and neither won outright." },
+          "evidence": { "type": "array", "items": { "type": "string" }, "description": "Why this label, e.g. `tag:header`, `text:pricing`." },
+          "selector": { "type": "string" },
+          "tag": { "type": "string" },
+          "box": { "type": ["array", "null"], "items": { "type": "number" }, "minItems": 4, "maxItems": 4, "description": "[top, left, width, height] in CSS pixels at the primary viewport." },
+          "nodeCount": { "type": "integer", "description": "Elements captured in this region, before the skeleton cap." },
+          "skeleton": { "type": "array", "items": { "type": "object", "additionalProperties": true }, "description": "Depth-limited element tree, capped per region. Boxes are [top, left, width, height] and properties equal to the CSS default are omitted." },
+          "components": { "type": "array", "items": { "type": "object", "additionalProperties": true }, "description": "Repeating structures inside this region — a card rendered in a loop." },
+          "motion": { "type": "array", "items": { "$ref": "#/components/schemas/BlueprintMotion" } },
+          "responsive": { "type": "array", "items": { "type": "object", "additionalProperties": true }, "description": "Per-viewport layout deltas, carrying only the value each property changes *to* — the from side is already in this region's skeleton." }
+        }
+      },
+      "BlueprintMotion": {
+        "type": "object",
+        "description": "One animation, classified. Recovered primarily from `document.getAnimations()`, so it is reported the same way whichever library produced it.",
+        "properties": {
+          "nodeId": { "type": ["string", "null"], "description": "The element this animates, joining it to a node in the region skeleton." },
+          "type": { "type": "string", "description": "The effect, named from what the keyframes do: `fade-up`, `fade-zoom-in`, `slide-right`, `class-toggle` when a class carries the effect, or `unknown`." },
+          "primitives": { "type": "array", "items": { "type": "string", "enum": ["fade", "slide", "scale", "rotate", "blur", "clip-reveal", "color"] }, "description": "The independent changes the effect is composed of." },
+          "detail": { "type": "object", "additionalProperties": true, "description": "Measured magnitudes behind the primitives, e.g. the translate distance and direction." },
+          "tier": { "type": ["string", "null"], "description": "Which recovery tier produced this record. Determines `confidence`." },
+          "source": { "type": ["string", "null"], "description": "What was intercepted or observed, e.g. `gsap`, `hover`, `mutation`." },
+          "confidence": { "type": "string", "enum": ["high", "medium", "low"], "description": "Derived from the tier: exact keyframes are high, a sampled curve is low." },
+          "trigger": {
+            "type": "object",
+            "description": "What starts it. `kind` selects which of the other fields are present.",
+            "properties": {
+              "kind": { "type": "string", "enum": ["load", "scroll-into-view", "scroll-scrub", "hover", "click", "infinite"] },
+              "delayMs": { "type": "integer", "description": "kind=load." },
+              "scrollPx": { "type": "integer", "description": "kind=scroll-into-view: scroll offset at which it fired." },
+              "threshold": { "type": ["number", "null"], "description": "kind=scroll-into-view: where the element sat in the viewport when it fired — the number an IntersectionObserver threshold is built from." },
+              "startPx": { "type": ["integer", "null"], "description": "kind=scroll-scrub." },
+              "endPx": { "type": ["integer", "null"], "description": "kind=scroll-scrub." },
+              "pinned": { "type": "boolean", "description": "kind=scroll-scrub." }
+            }
+          },
+          "timing": {
+            "type": "object",
+            "properties": {
+              "durationMs": { "type": "integer" },
+              "delayMs": { "type": "integer" },
+              "easing": { "type": ["string", "null"] },
+              "easingAlias": { "type": ["string", "null"], "description": "The cubic-bezier resolved back to a name where one matches." },
+              "iterations": { "oneOf": [{ "type": "number" }, { "type": "string", "const": "infinite" }] },
+              "direction": { "type": "string" },
+              "fill": { "type": "string" }
+            },
+            "description": "Fields equal to the CSS default are omitted."
+          },
+          "animationName": { "type": ["string", "null"] },
+          "keyframes": { "type": "array", "items": { "type": "object", "additionalProperties": true }, "description": "Present only when the animation has no named rule in `keyframes.css` — for a WAAPI or inline animation this is the only copy." },
+          "keyframesRef": { "type": "string", "description": "Name of a rule in `stylesheets[\"keyframes.css\"]`, used instead of repeating frames already carried there." },
+          "addedClasses": { "type": "array", "items": { "type": "string" }, "description": "type=class-toggle: the classes added. The effect itself lives in the stylesheet under them." },
+          "selector": { "type": ["string", "null"] },
+          "modifiers": {
+            "type": "object",
+            "properties": {
+              "stagger": {
+                "type": "object",
+                "description": "Present when siblings sharing an effect and duration fire at an evenly spaced delay.",
+                "properties": {
+                  "stepMs": { "type": "integer" },
+                  "count": { "type": "integer" }
+                }
+              }
+            }
+          }
+        }
+      },
+      "BlueprintTech": {
+        "type": "object",
+        "description": "A technology detected from observed evidence — a global, a selector, a request host or a generator tag.",
+        "properties": {
+          "name": { "type": "string" },
+          "category": { "type": "string", "enum": ["cms", "ecommerce", "payments", "analytics", "consent", "testing", "chat", "email", "framework", "hosting"] },
+          "categoryLabel": { "type": "string", "description": "The category rendered for display." },
+          "confidence": { "type": "string", "enum": ["high", "medium"], "description": "High for a JavaScript global or a generator tag, or for two independent kinds of evidence agreeing." },
+          "version": { "type": "string", "description": "Present only when the page exposes one." },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "kind": { "type": "string", "enum": ["global", "generator", "selector", "url", "host"] },
+                "value": { "type": "string" }
+              }
+            }
+          }
+        }
+      },
       "SpecError": {
         "type": "object",
         "required": ["type", "message", "retryable"],
@@ -857,6 +1061,7 @@
           "structure": { "type": "object", "additionalProperties": true },
           "design": { "$ref": "#/components/schemas/Design" },
           "spec": { "$ref": "#/components/schemas/Spec" },
+          "blueprint": { "$ref": "#/components/schemas/Blueprint" },
           "cache": { "$ref": "#/components/schemas/CacheState" },
           "credits": { "$ref": "#/components/schemas/Credits" },
           "renderTime": { "type": "integer", "minimum": 0 },
