@@ -667,7 +667,7 @@
           "includePaths": { "type": "array", "items": { "type": "string" } },
           "excludePaths": { "type": "array", "items": { "type": "string" } },
           "followBinary": { "type": "boolean", "default": false },
-          "robots": { "type": "string", "enum": ["obey", "ignore"], "default": "obey" },
+          "robots": { "type": "string", "enum": ["obey", "ignore"], "default": "obey", "description": "`ignore` requires a domain verified for this account and is rejected with `scope: any`. The override never applies off the verified host." },
           "markdown": { "type": "boolean", "default": true },
           "html": { "type": "boolean", "default": false },
           "structure": { "type": "boolean", "default": false },

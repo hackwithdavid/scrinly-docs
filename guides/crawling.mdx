@@ -51,5 +51,26 @@ Possible terminal states are `completed`, `cancelled`, `failed`, and `out_of_cre
 
 By default, Scrinly identifies as `Scrinly/3.0 (+https://scrinly.com/bot)`, obeys `robots.txt` and `Crawl-delay`, waits at least one second between requests to a host, and allows two concurrent requests per host. This host budget is shared with other Scrinly traffic targeting that host.
 
-Set `robots:"ignore"` only when you are authorized to crawl the target and have a concrete reason to override its policy.
+### `robots:"ignore"` requires a verified domain
+
+`robots:"ignore"` is not self-serve. It applies only to a domain you have proven
+you control, and without that proof the crawl still runs — it just obeys
+`robots.txt`, which is the default anyway.
+
+To verify a domain:
+
+1. Add it under **Account → Domains** in the dashboard, or `POST /account/domains`.
+2. Publish the token you are given at `https://<domain>/.well-known/scrinly-verify.txt`,
+   on a line of its own.
+3. Call `POST /account/domains/{id}/verify`.
+
+Two limits are deliberate and cannot be worked around:
+
+- **The override never leaves the verified domain.** If a crawl follows a link
+  to another host, `robots.txt` applies there immediately.
+- **It cannot be combined with `scope:"any"`**, which would let the crawl wander
+  onto domains you have proven nothing about. That combination returns a `400`.
+
+Verifying a domain proves control of that host only. `example.com` does not
+cover `docs.example.com`.
 
