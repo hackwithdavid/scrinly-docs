@@ -1,0 +1,55 @@
+---
+title: "Monitoring"
+description: "Schedule fresh screenshots, compare baselines, and alert on incidents."
+---
+
+Screenshot monitors perform fresh stored captures with `cache:false`, compare each successful run to a baseline, retain run history by plan, and send incident alerts.
+
+```bash
+curl --request POST "https://api.scrinly.com/render/monitors" \
+  --header "Authorization: Bearer $SCRINLY_API_KEY" \
+  --header "Content-Type: application/json" \
+  --data '{
+    "name":"Homepage",
+    "url":"https://example.com",
+    "intervalMinutes":1440,
+    "baselineMode":"rolling",
+    "changeThreshold":0.01,
+    "capture":{"fullPage":true,"regions":false,"format":"jpg","quality":80},
+    "diff":{"mode":"perceptual","visualization":"overlay"},
+    "alerts":{"email":{"account":true,"recipientIds":[]}}
+  }'
+```
+
+Creation immediately queues the first capture. That first successful run becomes the baseline and performs no diff. Manual `POST /render/monitors/{id}/run` requests use normal credits and do not move `nextRunAt`.
+
+## Baselines and incidents
+
+- `rolling` advances only after capture and diff both succeed.
+- `fixed` remains until `POST /render/monitors/{id}/baseline` selects an account-owned successful run.
+- Capture-affecting changes invalidate the baseline; schedule, threshold, and alert-only edits do not.
+- An incident opens when `differenceRatio >= changeThreshold` or any region is added or removed.
+- Change and failure incidents notify once when opened and once when recovered.
+- A failure incident opens after three consecutive capture or diff failures.
+
+If regions are enabled, the existing region-aware diff runs automatically. A region-generation failure refunds the two-credit surcharge and continues with a whole-image diff.
+
+## Plans and retention
+
+| Plan | Monitor limit | Minimum interval | Run history |
+| --- | ---: | ---: | ---: |
+| Free | 0 | — | — |
+| Startup | 10 | 1 day | 30 days |
+| Pro | 50 | 1 hour | 90 days |
+| Business | 200 | 15 minutes | 180 days |
+| Prime | 1,000 | 5 minutes | 365 days |
+
+The initial baseline costs the screenshot component, plus regions when enabled. Later runs add one diff credit. Insufficient-credit occurrences are recorded as `skipped_no_credits` and retried at the next interval. A plan downgrade pauses monitors that exceed the new limits.
+
+## Alerts and recipients
+
+Account email alerts can be combined with up to five verified custom recipients. Create or resend one through `POST /render/monitor-recipients`; verification links are single-use and expire after 30 minutes. Up to ten recipient resources may exist per account.
+
+Webhooks support a per-monitor URL and optional write-only secret. Events are `monitor.change_detected`, `monitor.change_recovered`, `monitor.failed`, and `monitor.failure_recovered`. Delivery retries do not change capture results, credits, or baseline state.
+
+Target URLs, page credentials, interactions, customer-storage credentials, and webhook secrets are encrypted. Queue messages carry identifiers only. Direct asset URLs remain publicly fetchable because the diff worker must retrieve them; customer storage is supported only when it produces such URLs.

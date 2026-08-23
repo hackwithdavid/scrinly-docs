@@ -1,0 +1,58 @@
+---
+title: "Regions"
+description: "Split a verified full-page screenshot into ordered, model-sized crops."
+---
+
+Set `regions:true` on either screenshot method. Regions imply `fullPage:true`, storage, and a default `storage_path` of `screenshots`; they add two credits.
+
+```bash
+curl --request POST "https://api.scrinly.com/render/screenshot" \
+  --header "Authorization: Bearer $SCRINLY_API_KEY" \
+  --header "Content-Type: application/json" \
+  --data '{
+    "url":"https://example.com",
+    "regions":true,
+    "format":"jpg",
+    "quality":80
+  }'
+```
+
+Every crop is decoded from the final verified screenshot—not captured from a second page session. The manifest therefore shares the complete screenshot's coordinate space and SHA-256 identity.
+
+```json
+{
+  "regions": {
+    "version": "regions-v1",
+    "coordinateSpace": "screenshot_pixels",
+    "screenshot": { "width": 1280, "height": 4200, "sha256": "2f7a..." },
+    "limits": { "maxRegionHeight": 1600, "maxAssets": 32 },
+    "items": [
+      {
+        "id": "region-0",
+        "order": 0,
+        "kind": "navigation",
+        "label": "Navigation",
+        "confidence": "high",
+        "evidenceKinds": ["semantic-landmark", "document-position"],
+        "bounds": { "x": 0, "y": 0, "width": 1280, "height": 80 },
+        "parts": [
+          {
+            "id": "region-0-part-0",
+            "index": 0,
+            "bounds": { "x": 0, "y": 0, "width": 1280, "height": 80 },
+            "media": { "url": "https://storage.example.com/screenshots/...jpg", "sha256": "6b31..." }
+          }
+        ]
+      }
+    ],
+    "coverage": { "ratio": 1, "truncated": false, "omittedAssets": 0 }
+  },
+  "credits": { "charged": 3, "refunded": 0, "net": 3 }
+}
+```
+
+Kinds are fixed: `navigation`, `hero`, `content`, `features`, `pricing`, `testimonials`, `faq`, `logos`, `cta`, and `footer`. Tall logical regions split into parts no higher than 1,600 bitmap pixels. At most 32 crop assets are returned; coverage reports any shedding or forced cuts.
+
+The manifest never exposes page text, HTML, selectors, cookies, headers, or reconstruction data. Each crop URL uses the same direct B2, S3, or R2 delivery contract as the full screenshot.
+
+If the screenshot succeeds but segmentation or crop upload fails, the request returns HTTP `200` with `regions:null`, a typed `regionError`, and a two-credit refund. The screenshot remains usable.

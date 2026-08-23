@@ -1,79 +1,35 @@
 ---
 title: "Async jobs and webhooks"
-description: "Queue renders, poll account-scoped job status, and receive signed completion webhooks."
+description: "Queue screenshots and diffs, poll owned status, and verify signed webhooks."
 ---
 
-Use an async job when a caller should not hold an HTTP connection open while Chromium renders the page. `POST /render` is always asynchronous. Snapshot and screenshot requests become asynchronous when `async` is `true` or a `webhookUrl` is supplied.
+Set `async:true` or provide `webhookUrl` on a supported screenshot or diff request. Scrinly returns `202` with a job ID and `statusUrl`. Async screenshots are stored automatically.
 
-## Submit a job
-
-<CodeGroup>
-```bash cURL
-curl --request POST 'https://api.scrinly.com/render' \
-  --header 'Authorization: Bearer sk_live_your_key' \
-  --header 'Content-Type: application/json' \
-  --data '{"url":"https://example.com","markdown":true,"store":true,"storage_path":"renders"}'
+```json
+{
+  "url": "https://example.com",
+  "fullPage": true,
+  "store": true,
+  "storage_path": "async",
+  "async": true
+}
 ```
 
-```javascript JavaScript
-const response = await fetch('https://api.scrinly.com/render', {
-  method: 'POST',
-  headers: {
-    Authorization: `Bearer ${process.env.SCRINLY_API_KEY}`,
-    'Content-Type': 'application/json',
-  },
-  body: JSON.stringify({
-    url: 'https://example.com',
-    markdown: true,
-    store: true,
-    storage_path: 'renders',
-  }),
-});
-const job = await response.json();
-```
+Platform-funded Visual Style Guides may be queued with the screenshot. BYOK Visual Style Guides are synchronous because provider credentials are never persisted or queued.
 
-```python Python
-import os, requests
-
-job = requests.post(
-    "https://api.scrinly.com/render",
-    headers={"Authorization": f"Bearer {os.environ['SCRINLY_API_KEY']}"},
-    json={
-        "url": "https://example.com",
-        "markdown": True,
-        "store": True,
-        "storage_path": "renders",
-    },
-).json()
-```
-</CodeGroup>
-
-Async jobs always store their screenshot, so include `storage_path` when requesting one.
-
-## Poll job status
-
-Call `GET /status/{jobId}` with the same account key that created the job. Status is `queued`, `in_progress`, `completed`, `failed`, or `not_found`, and progress ranges from 0 to 100.
+## Poll status
 
 ```bash
-curl 'https://api.scrinly.com/status/6a8bc66a-0000-4000-8000-000000000000' \
-  --header 'Authorization: Bearer sk_live_your_key'
+curl "https://api.scrinly.com/status/$JOB_ID" \
+  --header "Authorization: Bearer $SCRINLY_API_KEY"
 ```
 
-The endpoint returns `401` for a missing, unknown, or revoked API key. A nonexistent job and a job owned by another account both return `404`; ownership is never disclosed.
+Status polling is free and account-scoped. A missing or invalid key returns `401`; unknown and cross-account job IDs return `404`. Jobs transition through `queued`, `in_progress`, `completed`, or `failed`, with progress from 0 to 100.
 
-Completed results stored in job state are capped at about 1.5 MB. If necessary, Scrinly drops the largest optional fields and lists their names in `result.truncated`. Stored media URLs remain available.
+Completed status includes safe screenshot, region, Style Guide, diff, credit, and typed component-error fields. Private headers, cookies, provider keys, customer-storage credentials, webhook secrets, and source URLs used only for diff download are not exposed. Oversized stored job results may list optional fields in `result.truncated`; direct media URLs remain in the result.
 
-## Receive a webhook
+## Signed webhooks
 
-Set `webhookUrl` to receive the final job result instead of polling. It implies async mode. If you also set `webhookSecret`, Scrinly signs the raw request body with HMAC-SHA256. Verify the signature before parsing or trusting the payload.
+`webhookUrl` implies async mode. Add `webhookSecret` and verify the HMAC-SHA256 signature against the raw request body before parsing it. Webhook results follow the same safe response projection as status polling.
 
-Your webhook should return a successful response quickly and move expensive processing to its own queue. Delivery failures do not change the completed render result.
-
-## Retry failures
-
-- `POST /retry/{jobId}` re-enqueues one failed job.
-- `POST /retry-failed` retries failed jobs in bulk.
-- `GET /dead-letter-queue` lists jobs that exhausted normal delivery attempts.
-
-These routes are customer-authenticated and account-scoped. A retry can consume credits because it performs Browser Rendering again.
-
+Return a successful response quickly and queue your own expensive work. Delivery retry failure does not rewrite a completed browser or diff result.

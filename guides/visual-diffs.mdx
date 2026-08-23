@@ -1,0 +1,38 @@
+---
+title: "Visual diffs"
+description: "Compare two stored screenshots with pixel or perceptual analysis."
+---
+
+`POST /render/diff` compares two publicly fetchable HTTPS JPEG or PNG screenshots. Pass the existing `media` objects verbatim; include both `regions-v1` manifests to enable region-aware matching.
+
+```json
+{
+  "before": { "media": { "url": "https://storage.example.com/before.jpg" }, "regions": {} },
+  "after": { "media": { "url": "https://storage.example.com/after.jpg" }, "regions": {} },
+  "mode": "perceptual",
+  "visualization": "overlay"
+}
+```
+
+`perceptual` is the default and suppresses minor JPEG, antialiasing, and rendering noise. `pixel` reports exact pixel differences. Source widths must match; full-page heights may differ and excess height counts as added or removed evidence.
+
+## Visualizations
+
+| Value | Output |
+| --- | --- |
+| `overlay` | Newer screenshot with solid localized changes and dashed region context |
+| `heatmap` | Yellow-to-red local density and severity over a dimmed newer screenshot |
+| `mask` | Exact white changed pixels on black |
+| `none` | Metadata only; no stored visualization |
+
+Every mode costs one credit. Generated visualization media uses the same direct storage contract and `X-Scrinly-Storage-URL` header as screenshots.
+
+## Region-aware matching
+
+When both manifests validate against the downloaded screenshot hashes and dimensions, Scrinly matches logical regions using kind, order, normalized position, height, and visual fingerprints. Matched regions are compared independently, so inserting one section does not make every later section appear changed. Results classify regions as `unchanged`, `changed`, `added`, or `removed` and report movement and size changes separately.
+
+If either manifest is absent or invalid, the operation falls back to whole-image comparison with `regionMatching.status:"unavailable"`. A manifest whose screenshot hash no longer matches its URL is rejected with `diff_source_hash_mismatch`; recapture assets that were overwritten before content-addressed storage was enabled.
+
+The result includes recomputed source hashes, dimensions, `changed`, `changedPixels`, `differenceRatio`, `similarity`, comparison coverage, up to 128 consolidated `changedBounds`, region results, algorithm version, media, and credits. Source URLs are not echoed.
+
+Sources allow at most three safe redirects, 20 MiB encoded bytes each, 24 megapixels each, 40 megapixels combined, and 32,768 pixels of height. Private/reserved destinations, embedded URL credentials, mismatched content, and invalid images fail with typed `diff_*` codes and a full refund.

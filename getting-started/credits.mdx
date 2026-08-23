@@ -1,72 +1,31 @@
 ---
 title: "Credits and billing"
-description: "Understand render costs, interpretation tariffs, charging, and refunds."
+description: "Understand additive screenshot costs and component-level refunds."
 ---
 
-Scrinly charges credits before starting work so exhausted accounts cannot consume browser time. Failed renders are refunded.
+Credits are charged by completed product component.
 
-## Browser operations
-
-| Work | Credits |
+| Component | Credits |
 | --- | ---: |
-| Snapshot extraction | 1 |
-| Design extraction | 2 total |
-| Blueprint | 8 total |
 | Screenshot | 1 |
-| Screenshot plus ordinary extraction | 2 |
-| Screenshot plus design extraction | 2 |
-| Crawl page | 1 per page |
+| Regions | +2 |
+| Platform Visual Style Guide generation or regeneration | +3 |
+| Platform Visual Style Guide cache hit | +1 |
+| BYOK Visual Style Guide generation or cache hit | +1 |
+| Visual diff | 1 |
 
-Batch requests charge one credit per submitted URL and refund URLs that fail validation or rendering. Scheduled requests are charged when they fire, not when the schedule is created.
+A platform-funded screenshot with regions and a generated Visual Style Guide is 6 credits. The same request with an AI cache hit is 4 credits; BYOK is 4 credits.
 
-## Blueprint interpretation
+Screenshot-cache hits preserve the screenshot and region tariff. Caching reduces Browser Rendering work and latency, not the published credit cost. A public screenshot batch reserves one screenshot credit per accepted item.
 
-`interpret=true` adds a grounded prose reading of the blueprint. It is an increment on the blueprint, not a separate price:
+## Refunds
 
-| Request | Platform credential | BYOK |
-| --- | ---: | ---: |
-| Blueprint | 8 | 8 |
-| Blueprint plus interpretation | 11 | 9 |
-| Blueprint plus cached interpretation | 9 | 9 |
+- A failed screenshot or primary upload refunds the complete request.
+- A region-only failure returns the stored screenshot and refunds the two-region increment.
+- A Visual Style Guide failure returns the screenshot and regions with `status:"partial"`, refunds only its AI increment, and includes `styleGuideError`.
+- A failed diff refunds its one credit.
+- Status polling and monitor listing are free.
 
-There is no tier below 9, because the browser work happens on every request and only the model call can be discounted. The interpretation cache is keyed on a projection of the blueprint rather than the URL, so an unchanged page reuses its document even though each capture differs.
+When Scrinly cannot know the Style Guide cache status before generation, it charges the maximum and synchronously refunds the difference after settlement. Successful responses expose `credits.charged`, `credits.refunded`, and `credits.net` when the operation has additive settlement.
 
-`refresh=true` bypasses the interpretation cache and regenerates at the full tariff. The capture always runs.
-
-If the capture succeeds and the model call does not, the response is HTTP `200` with `status:"blueprint_only"`. You keep the blueprint and only the interpretation credits come back:
-
-```json
-{
-  "credits": { "charged": 11, "refunded": 3, "net": 8 }
-}
-```
-
-## Check current usage
-
-Call `GET /usage` or inspect `X-Scrinly-Credits-Used` and `X-Scrinly-Credits-Limit` on render responses.
-
-The [dashboard](https://app.scrinly.com) additionally shows the last 30 days broken down by day and endpoint, including failed requests and the credits refunded for them.
-
-## Page blueprints
-
-`blueprint=true` on a snapshot adds **6 credits**, so a blueprint comes to **8** in total: 1 for the extraction, 1 for the design it implies, and 6 for the blueprint itself. One request captures the page at two viewports with stepped scrolling in each, which is more browser work than a screenshot and less than a crawl. It is charged before the capture starts and refunded in full if nothing is produced.
-
-## Free plan and renewals
-
-New accounts start on the free plan with **100 credits per month**.
-
-Your credit allowance refreshes **every month**, on the same date each month, whichever plan you are on. The dashboard shows the exact date.
-
-## Monthly and yearly billing
-
-Paid plans can be billed monthly or yearly. Yearly costs about 20% less than twelve monthly payments.
-
-<Note>
-  Yearly billing changes when you pay, not how many credits you get. An annual plan refreshes the **same monthly allowance** twelve times over the year — it does not grant twelve months of credits up front.
-</Note>
-
-So Pro billed yearly is 10,000 credits every month for twelve months, not 120,000 credits available immediately. Your renewal date and your credit refresh date are therefore different on an annual plan, and the dashboard shows both.
-
-Switching between monthly and yearly, changing plan, changing a card, or cancelling are all handled in the billing portal, reachable from the dashboard. Switching does not reset your credit cycle — your allowance keeps refreshing on the date it always did.
-
-Cancelling returns the account to the free plan; existing API keys keep working at the free allowance. Plan prices and allowances are maintained on the [Scrinly pricing page](https://scrinly.com/pricing).
+See the current plan allowances and subscription prices on the [Scrinly pricing page](https://scrinly.com/#pricing).

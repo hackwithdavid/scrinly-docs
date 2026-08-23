@@ -1,19 +1,16 @@
 ---
 title: "API reference"
-description: "Base URL, authentication, response conventions, and endpoint groups."
+description: "The focused, unversioned Scrinly screenshot contract."
 ---
 
-The Scrinly Browser API is an HTTPS JSON API at:
+The production base URL is:
 
 ```text
 https://api.scrinly.com
 ```
 
-Authenticate with `Authorization: Bearer <SCRINLY_API_KEY>`. The endpoint pages in this reference are generated from the public OpenAPI 3.1 contract and can be tried from the API playground.
+All operations use `Authorization: Bearer $SCRINLY_API_KEY`. Screenshot Visual Style Guide calls may additionally carry `X-Scrinly-Provider-API-Key`; no other operation accepts that header.
 
-Screenshots return `image/png` or `image/jpeg` bytes unless storage is enabled. Most other successful calls return JSON. Batch requests can return `207 Multi-Status`, and an interpreted blueprint can return a successful `blueprint_only` partial result.
+Screenshot responses are binary unless storage or an add-on requires JSON. Stored screenshots, region crops, and diff images return direct B2, S3, or R2 URLs. Async requests return `202`; batches may return `207 Multi-Status`; component-level screenshot failures may return a usable HTTP `200` partial result.
 
-The legacy `api_key` query parameter remains available on compatible GET routes, but URLs leak into browser history, access logs, proxies, and analytics. Use the bearer header for all new integrations.
-
-The public contract excludes account provisioning, health probes, statistics, cache administration, and internal operations.
-
+The endpoint pages in this section are generated from the checked OpenAPI 3.1 contract. Only public screenshot, batch, diff, monitoring, recipient, status, and usage operations are included.

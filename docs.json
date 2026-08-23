@@ -2,7 +2,7 @@
   "$schema": "https://mintlify.com/docs.json",
   "theme": "almond",
   "name": "Scrinly API",
-  "description": "Screenshots, structured page data, crawls, and grounded AI design specifications from any webpage.",
+  "description": "Screenshot API for AI agents and automation.",
   "colors": {
     "primary": "#56C0EF",
     "light": "#8FD5F4",
@@ -42,21 +42,25 @@
             ]
           },
           {
-            "group": "Core workflows",
+            "group": "Capture",
             "pages": [
-              "guides/snapshots",
               "guides/screenshots",
-              "guides/design-extraction",
-              "guides/async-jobs",
-              "guides/blueprints",
-              "guides/crawling"
+              "guides/regions",
+              "guides/visual-style-guide"
+            ]
+          },
+          {
+            "group": "Compare and monitor",
+            "pages": [
+              "guides/visual-diffs",
+              "guides/monitoring",
+              "guides/async-jobs"
             ]
           },
           {
             "group": "Scale and delivery",
             "pages": [
               "guides/batches",
-              "guides/scheduling",
               "guides/storage",
               "guides/caching"
             ]

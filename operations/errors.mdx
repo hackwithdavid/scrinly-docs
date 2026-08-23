@@ -1,28 +1,34 @@
 ---
 title: "Errors and retries"
-description: "Handle HTTP failures, typed render errors, and partial AI results safely."
+description: "Handle transport, capture, component, and asynchronous failures."
 ---
 
-Scrinly uses standard HTTP status codes and JSON error bodies. Preserve the HTTP status, `error` or `type`, and message in your application telemetry, but redact request headers, cookies, storage credentials, and provider keys.
+JSON errors include `success:false`, a safe `error` message, and a stable `type`. Some products add a more specific `code`, `retryable`, `fields`, or settled `credits`.
 
-| Status | Meaning | Retry guidance |
-| --- | --- | --- |
-| `400` | Invalid option or unsupported combination | Fix the request. Do not retry unchanged. |
-| `401` | Missing, unknown, or revoked Scrinly key | Replace the credential. |
-| `402` | Credit limit reached | Add credits or wait for the account period to reset. |
-| `403` | Account is deactivated | Resolve the account state. |
-| `404` | Resource missing or owned by another account | Check the ID and account. |
-| `408` | Render or upstream deadline exceeded | Retry with backoff if the operation is idempotent. |
-| `429` | Rate limited | Respect `Retry-After` and use jittered backoff. |
-| `5xx` | Temporary platform or provider failure | Retry with bounded exponential backoff. |
+| Status | Meaning |
+| --- | --- |
+| `400` | Invalid field, unsupported combination, or malformed source |
+| `401` | Missing, invalid, or revoked Scrinly key |
+| `402` | Credit allowance exhausted |
+| `404` | Unknown or cross-account resource |
+| `409` | Conflicting monitor run or state transition |
+| `413` | Request or source exceeds a documented limit |
+| `422` | Browser could not produce a complete finite capture |
+| `429` | Host or provider rate limit |
+| `500–503` | Temporary platform, provider, or configuration failure |
 
-Batch requests may return `207`; inspect each item.
+## Partial screenshot results
 
-## AI partial results
+Add-ons settle independently. A successful screenshot with failed regions returns HTTP `200`, `regions:null`, `regionError`, and a two-credit refund. A successful screenshot and regions with failed AI generation returns `status:"partial"`, `styleGuide:null`, a typed `styleGuideError`, and only the AI refund.
 
-An interpreted blueprint can return HTTP `200` with `status:"blueprint_only"`. The capture succeeded, so the response includes the snapshot, the design and the full blueprint, but `blueprint.interpretation` is `null` and `blueprint.interpretationError` explains the provider, timeout, truncation, or grounding failure. Only the interpretation credits are refunded — the blueprint was delivered.
+Treat partial responses as usable evidence. Persist the complete screenshot and inspect the typed component error before deciding whether to retry. A customer retry can use `cache:true` to avoid another browser capture when the cached entry contains all required inputs.
 
-This is not a transport error. Save the useful design result and decide whether to retry generation. A URL retry can reuse the account-scoped snapshot and avoid another browser render.
+## Retry guidance
 
-Scrinly never silently switches AI providers. A missing platform provider key returns a typed `503` before rendering or charging.
+- Retry `429` after `Retry-After`, with jitter.
+- Retry errors only when `retryable:true` or the transport failed before a response.
+- Do not retry validation, ownership, hash-mismatch, or unbounded-page errors unchanged.
+- Make async settlement idempotent on your side by job ID or webhook event identity.
+- Polling `GET /status/{jobId}` does not charge credits.
 
+Scrinly does not expose customer retry or recovery routes. Submit a new screenshot or diff request when a retry is appropriate.

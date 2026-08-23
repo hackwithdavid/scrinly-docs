@@ -2,8 +2,8 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Scrinly Browser API",
-    "version": "2026-08-14",
-    "description": "Public API for browser rendering, screenshots, structured extraction, grounded page-reconstruction blueprints, batches, jobs, crawls, schedules, and usage."
+    "version": "1.0.0",
+    "description": "Public screenshot, region, Visual Style Guide, visual diff, monitoring, batch, job-status, and usage API."
   },
   "servers": [
     { "url": "https://api.scrinly.com", "description": "Production" }
@@ -12,143 +12,100 @@
     { "BearerAuth": [] }
   ],
   "tags": [
-    { "name": "Rendering", "description": "Synchronous and asynchronous browser renders." },
-    { "name": "Batches", "description": "Create multiple asynchronous render jobs." },
-    { "name": "Jobs", "description": "Inspect and retry account-owned jobs." },
-    { "name": "Crawls", "description": "Traverse a site and collect page results." },
-    { "name": "Schedules", "description": "Create and manage account-owned render schedules." },
-    { "name": "Usage", "description": "Read account credit usage." }
+    { "name": "Screenshots" },
+    { "name": "Batches" },
+    { "name": "Diffs" },
+    { "name": "Jobs" },
+    { "name": "Usage" },
+    { "name": "Monitors" },
+    { "name": "Recipients" }
   ],
   "paths": {
-    "/render": {
-      "post": {
-        "tags": ["Rendering"],
-        "summary": "Submit an asynchronous render",
-        "operationId": "submitRender",
-        "requestBody": {
-          "required": true,
-          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AsyncRenderRequest" } } }
-        },
-        "responses": {
-          "202": { "$ref": "#/components/responses/JobAccepted" },
-          "400": { "$ref": "#/components/responses/BadRequest" },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "402": { "$ref": "#/components/responses/PaymentRequired" },
-          "403": { "$ref": "#/components/responses/Forbidden" },
-          "429": { "$ref": "#/components/responses/RateLimited" }
-        }
-      }
-    },
-    "/render/snapshot": {
-      "get": {
-        "tags": ["Rendering"],
-        "summary": "Capture a page snapshot",
-        "description": "Extracts metadata and selected page content. `blueprint=true` is synchronous, implies design extraction, and cannot be combined with async or webhook delivery. The legacy `api_key` query credential is discouraged because URLs can leak through logs, browser history, proxies, and analytics.",
-        "operationId": "getSnapshot",
-        "security": [{ "BearerAuth": [] }, { "LegacyQueryKey": [] }],
-        "parameters": [
-          { "$ref": "#/components/parameters/SnapshotUrl" },
-          { "$ref": "#/components/parameters/Markdown" },
-          { "$ref": "#/components/parameters/Html" },
-          { "$ref": "#/components/parameters/Links" },
-          { "$ref": "#/components/parameters/Images" },
-          { "$ref": "#/components/parameters/Videos" },
-          { "$ref": "#/components/parameters/Fonts" },
-          { "$ref": "#/components/parameters/Colors" },
-          { "$ref": "#/components/parameters/Structure" },
-          { "$ref": "#/components/parameters/Design" },
-          { "$ref": "#/components/parameters/Blueprint" },
-          { "$ref": "#/components/parameters/BlueprintViewports" },
-          { "$ref": "#/components/parameters/BlueprintScreenshots" },
-          { "$ref": "#/components/parameters/Interpret" },
-          { "$ref": "#/components/parameters/Provider" },
-          { "$ref": "#/components/parameters/Refresh" },
-          { "$ref": "#/components/parameters/Async" },
-          { "$ref": "#/components/parameters/ProviderApiKey" },
-          { "$ref": "#/components/parameters/Timeout" }
-        ],
-        "responses": {
-          "200": { "$ref": "#/components/responses/SnapshotResult" },
-          "202": { "$ref": "#/components/responses/JobAccepted" },
-          "400": { "$ref": "#/components/responses/BadRequest" },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "402": { "$ref": "#/components/responses/PaymentRequired" },
-          "403": { "$ref": "#/components/responses/Forbidden" },
-          "503": { "$ref": "#/components/responses/ProviderUnavailable" }
-        }
-      },
-      "post": {
-        "tags": ["Rendering"],
-        "summary": "Capture a page snapshot",
-        "operationId": "createSnapshot",
-        "parameters": [{ "$ref": "#/components/parameters/ProviderApiKey" }],
-        "requestBody": {
-          "required": true,
-          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SnapshotRequest" } } }
-        },
-        "responses": {
-          "200": { "$ref": "#/components/responses/SnapshotResult" },
-          "202": { "$ref": "#/components/responses/JobAccepted" },
-          "400": { "$ref": "#/components/responses/BadRequest" },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "402": { "$ref": "#/components/responses/PaymentRequired" },
-          "403": { "$ref": "#/components/responses/Forbidden" },
-          "503": { "$ref": "#/components/responses/ProviderUnavailable" }
-        }
-      }
-    },
     "/render/screenshot": {
       "get": {
-        "tags": ["Rendering"],
-        "summary": "Capture a screenshot",
+        "tags": ["Screenshots"],
         "operationId": "getScreenshot",
-        "security": [{ "BearerAuth": [] }, { "LegacyQueryKey": [] }],
+        "summary": "Capture a screenshot",
+        "description": "Returns JPEG or PNG bytes unless storage, regions, asynchronous delivery, or Visual Style Guide requires a JSON result.",
         "parameters": [
-          { "$ref": "#/components/parameters/SnapshotUrl" },
+          { "$ref": "#/components/parameters/TargetUrl" },
           { "$ref": "#/components/parameters/Format" },
           { "$ref": "#/components/parameters/Quality" },
           { "$ref": "#/components/parameters/Width" },
           { "$ref": "#/components/parameters/Height" },
+          { "$ref": "#/components/parameters/Device" },
           { "$ref": "#/components/parameters/FullPage" },
           { "$ref": "#/components/parameters/Theme" },
-          { "$ref": "#/components/parameters/Design" },
-          { "$ref": "#/components/parameters/Async" },
           { "$ref": "#/components/parameters/Store" },
-          { "$ref": "#/components/parameters/Timeout" }
+          { "$ref": "#/components/parameters/StoragePath" },
+          { "$ref": "#/components/parameters/Regions" },
+          { "$ref": "#/components/parameters/StyleGuide" },
+          { "$ref": "#/components/parameters/Regenerate" },
+          { "$ref": "#/components/parameters/Cache" },
+          { "$ref": "#/components/parameters/Async" },
+          { "$ref": "#/components/parameters/ProviderApiKey" }
         ],
         "responses": {
-          "200": { "$ref": "#/components/responses/ScreenshotResult" },
-          "202": { "$ref": "#/components/responses/JobAccepted" },
+          "200": { "$ref": "#/components/responses/ScreenshotSuccess" },
+          "202": { "$ref": "#/components/responses/AsyncAccepted" },
           "400": { "$ref": "#/components/responses/BadRequest" },
           "401": { "$ref": "#/components/responses/Unauthorized" },
           "402": { "$ref": "#/components/responses/PaymentRequired" },
-          "403": { "$ref": "#/components/responses/Forbidden" }
+          "422": { "$ref": "#/components/responses/CaptureFailed" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "503": { "$ref": "#/components/responses/Unavailable" }
         }
       },
       "post": {
-        "tags": ["Rendering"],
-        "summary": "Capture a screenshot",
+        "tags": ["Screenshots"],
         "operationId": "createScreenshot",
+        "summary": "Capture a screenshot",
+        "parameters": [
+          { "$ref": "#/components/parameters/ProviderApiKey" }
+        ],
         "requestBody": {
           "required": true,
-          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ScreenshotRequest" } } }
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ScreenshotRequest" },
+              "examples": {
+                "stored": {
+                  "value": { "url": "https://example.com", "fullPage": true, "store": true, "storage_path": "screenshots" }
+                },
+                "styleGuide": {
+                  "value": { "url": "https://example.com", "styleGuide": true, "cache": true }
+                }
+              }
+            }
+          }
         },
         "responses": {
-          "200": { "$ref": "#/components/responses/ScreenshotResult" },
-          "202": { "$ref": "#/components/responses/JobAccepted" },
+          "200": { "$ref": "#/components/responses/ScreenshotSuccess" },
+          "202": { "$ref": "#/components/responses/AsyncAccepted" },
           "400": { "$ref": "#/components/responses/BadRequest" },
           "401": { "$ref": "#/components/responses/Unauthorized" },
           "402": { "$ref": "#/components/responses/PaymentRequired" },
-          "403": { "$ref": "#/components/responses/Forbidden" }
+          "422": { "$ref": "#/components/responses/CaptureFailed" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "503": { "$ref": "#/components/responses/Unavailable" }
         }
       }
     },
     "/render/batch": {
       "post": {
         "tags": ["Batches"],
-        "summary": "Submit a render batch",
-        "operationId": "submitRenderBatch",
-        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/BatchRequest" } } } },
+        "operationId": "createScreenshotBatch",
+        "summary": "Queue stored screenshots",
+        "description": "Accepts up to 100 URLs. Public batches are screenshot-only and reserve one credit per accepted item.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/BatchRequest" },
+              "example": { "urls": ["https://example.com", "https://example.org"], "screenshot": true, "store": true, "storage_path": "batch" }
+            }
+          }
+        },
         "responses": {
           "200": { "$ref": "#/components/responses/BatchResult" },
           "207": { "$ref": "#/components/responses/BatchResult" },
@@ -158,582 +115,400 @@
         }
       }
     },
-    "/render/smart-batch": {
+    "/render/diff": {
       "post": {
-        "tags": ["Batches"],
-        "summary": "Submit a host-aware render batch",
-        "operationId": "submitSmartRenderBatch",
-        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/BatchRequest" } } } },
+        "tags": ["Diffs"],
+        "operationId": "createScreenshotDiff",
+        "summary": "Compare stored screenshots",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/DiffRequest" },
+              "example": {
+                "before": { "media": { "url": "https://storage.example.com/before.jpg" } },
+                "after": { "media": { "url": "https://storage.example.com/after.jpg" } },
+                "mode": "perceptual",
+                "visualization": "overlay"
+              }
+            }
+          }
+        },
         "responses": {
-          "200": { "$ref": "#/components/responses/BatchResult" },
-          "207": { "$ref": "#/components/responses/BatchResult" },
+          "200": { "description": "Completed comparison", "headers": { "X-Scrinly-Storage-URL": { "$ref": "#/components/headers/StorageUrl" } }, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DiffResponse" } } } },
+          "202": { "$ref": "#/components/responses/AsyncAccepted" },
           "400": { "$ref": "#/components/responses/BadRequest" },
           "401": { "$ref": "#/components/responses/Unauthorized" },
-          "402": { "$ref": "#/components/responses/PaymentRequired" }
+          "402": { "$ref": "#/components/responses/PaymentRequired" },
+          "413": { "$ref": "#/components/responses/TooLarge" },
+          "422": { "$ref": "#/components/responses/DiffFailed" }
         }
       }
     },
     "/status/{jobId}": {
       "get": {
         "tags": ["Jobs"],
-        "summary": "Get job status",
-        "description": "Requires a valid customer key. Jobs owned by another account return the same 404 as an unknown ID.",
         "operationId": "getJobStatus",
-        "parameters": [{ "$ref": "#/components/parameters/JobId" }],
-        "responses": {
-          "200": { "description": "Current job state", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/JobStatus" } } } },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "404": { "$ref": "#/components/responses/NotFound" }
-        }
-      }
-    },
-    "/retry/{jobId}": {
-      "post": {
-        "tags": ["Jobs"],
-        "summary": "Retry a failed job",
-        "operationId": "retryJob",
-        "parameters": [{ "$ref": "#/components/parameters/JobId" }],
-        "responses": {
-          "202": { "$ref": "#/components/responses/JobAccepted" },
-          "400": { "$ref": "#/components/responses/BadRequest" },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "402": { "$ref": "#/components/responses/PaymentRequired" },
-          "404": { "$ref": "#/components/responses/NotFound" }
-        }
-      }
-    },
-    "/retry-failed": {
-      "post": {
-        "tags": ["Jobs"],
-        "summary": "Retry failed jobs",
-        "operationId": "retryFailedJobs",
-        "requestBody": { "required": false, "content": { "application/json": { "schema": { "type": "object", "properties": { "limit": { "type": "integer", "minimum": 1 } } } } } },
-        "responses": {
-          "200": { "description": "Retry summary", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RetrySummary" } } } },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "402": { "$ref": "#/components/responses/PaymentRequired" }
-        }
-      }
-    },
-    "/dead-letter-queue": {
-      "get": {
-        "tags": ["Jobs"],
-        "summary": "List exhausted jobs",
-        "operationId": "listDeadLetterJobs",
+        "summary": "Get account-owned job status",
         "parameters": [
-          { "name": "limit", "in": "query", "schema": { "type": "integer", "minimum": 1, "maximum": 100, "default": 50 } }
+          { "$ref": "#/components/parameters/JobId" }
         ],
         "responses": {
-          "200": { "description": "Dead-letter jobs", "content": { "application/json": { "schema": { "type": "object", "properties": { "success": { "const": true }, "jobs": { "type": "array", "items": { "$ref": "#/components/schemas/JobStatus" } } }, "required": ["success", "jobs"] } } } },
-          "401": { "$ref": "#/components/responses/Unauthorized" }
-        }
-      }
-    },
-    "/crawl": {
-      "post": {
-        "tags": ["Crawls"],
-        "summary": "Start a crawl",
-        "operationId": "createCrawl",
-        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CrawlRequest" } } } },
-        "responses": {
-          "202": { "description": "Crawl accepted", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CrawlAccepted" } } } },
-          "400": { "$ref": "#/components/responses/BadRequest" },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "402": { "$ref": "#/components/responses/PaymentRequired" }
-        }
-      }
-    },
-    "/crawls": {
-      "get": {
-        "tags": ["Crawls"],
-        "summary": "List crawls",
-        "operationId": "listCrawls",
-        "parameters": [
-          { "name": "limit", "in": "query", "schema": { "type": "integer", "minimum": 1, "maximum": 100, "default": 25 } },
-          { "name": "cursor", "in": "query", "schema": { "type": "string" } }
-        ],
-        "responses": {
-          "200": { "description": "Account-owned crawls", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CrawlList" } } } },
-          "401": { "$ref": "#/components/responses/Unauthorized" }
-        }
-      }
-    },
-    "/crawl/{crawlId}": {
-      "get": {
-        "tags": ["Crawls"],
-        "summary": "Get crawl status",
-        "operationId": "getCrawl",
-        "parameters": [{ "$ref": "#/components/parameters/CrawlId" }],
-        "responses": {
-          "200": { "description": "Crawl state and counters", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Crawl" } } } },
+          "200": { "description": "Job status", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/JobStatus" } } } },
           "401": { "$ref": "#/components/responses/Unauthorized" },
           "404": { "$ref": "#/components/responses/NotFound" }
-        }
-      },
-      "delete": {
-        "tags": ["Crawls"],
-        "summary": "Cancel a crawl",
-        "operationId": "cancelCrawl",
-        "parameters": [{ "$ref": "#/components/parameters/CrawlId" }],
-        "responses": {
-          "200": { "description": "Cancellation accepted", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Crawl" } } } },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "404": { "$ref": "#/components/responses/NotFound" }
-        }
-      }
-    },
-    "/crawl/{crawlId}/pages": {
-      "get": {
-        "tags": ["Crawls"],
-        "summary": "List crawl pages",
-        "operationId": "listCrawlPages",
-        "parameters": [
-          { "$ref": "#/components/parameters/CrawlId" },
-          { "name": "status", "in": "query", "schema": { "type": "string", "enum": ["queued", "in_progress", "completed", "failed", "skipped"] } },
-          { "name": "limit", "in": "query", "schema": { "type": "integer", "minimum": 1, "maximum": 100, "default": 50 } },
-          { "name": "cursor", "in": "query", "schema": { "type": "string" } }
-        ],
-        "responses": {
-          "200": { "description": "Cursor-paginated pages", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CrawlPages" } } } },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "404": { "$ref": "#/components/responses/NotFound" }
-        }
-      }
-    },
-    "/crawl/{crawlId}/results": {
-      "get": {
-        "tags": ["Crawls"],
-        "summary": "List crawl results",
-        "operationId": "listCrawlResults",
-        "parameters": [
-          { "$ref": "#/components/parameters/CrawlId" },
-          { "name": "limit", "in": "query", "schema": { "type": "integer", "minimum": 1, "maximum": 100, "default": 50 } },
-          { "name": "cursor", "in": "query", "schema": { "type": "string" } }
-        ],
-        "responses": {
-          "200": { "description": "Completed crawl-page results", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CrawlResults" } } } },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "404": { "$ref": "#/components/responses/NotFound" }
-        }
-      }
-    },
-    "/render/scheduled": {
-      "post": {
-        "tags": ["Schedules"],
-        "summary": "Schedule one render",
-        "operationId": "createScheduledRender",
-        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ScheduledRenderRequest" } } } },
-        "responses": {
-          "201": { "description": "Schedule created", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Schedule" } } } },
-          "400": { "$ref": "#/components/responses/BadRequest" },
-          "401": { "$ref": "#/components/responses/Unauthorized" }
-        }
-      },
-      "get": {
-        "tags": ["Schedules"],
-        "summary": "List scheduled renders",
-        "description": "Returns schedules owned by the authenticated account only.",
-        "operationId": "listScheduledRenders",
-        "parameters": [
-          { "name": "type", "in": "query", "schema": { "type": "string", "enum": ["delayed", "repeatable"] } },
-          { "name": "limit", "in": "query", "schema": { "type": "integer", "minimum": 1, "maximum": 100, "default": 50 } },
-          { "name": "offset", "in": "query", "schema": { "type": "integer", "minimum": 0, "default": 0 } }
-        ],
-        "responses": {
-          "200": { "description": "Account-owned schedules", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ScheduleList" } } } },
-          "401": { "$ref": "#/components/responses/Unauthorized" }
-        }
-      }
-    },
-    "/render/scheduled/{id}": {
-      "delete": {
-        "tags": ["Schedules"],
-        "summary": "Cancel a scheduled render",
-        "description": "An unknown ID and a schedule owned by another account both return 404.",
-        "operationId": "cancelScheduledRender",
-        "parameters": [{ "$ref": "#/components/parameters/ScheduleId" }],
-        "responses": {
-          "200": { "description": "Schedule cancelled", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Schedule" } } } },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "404": { "$ref": "#/components/responses/NotFound" }
-        }
-      }
-    },
-    "/render/bulk-scheduled": {
-      "post": {
-        "tags": ["Schedules"],
-        "summary": "Schedule multiple one-time renders",
-        "operationId": "createBulkScheduledRenders",
-        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/BulkScheduleRequest" } } } },
-        "responses": {
-          "200": { "description": "All schedules created", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/BulkScheduleResponse" } } } },
-          "207": { "description": "Some schedules were rejected", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/BulkScheduleResponse" } } } },
-          "400": { "$ref": "#/components/responses/BadRequest" },
-          "401": { "$ref": "#/components/responses/Unauthorized" }
-        }
-      }
-    },
-    "/render/schedule-recurring": {
-      "post": {
-        "tags": ["Schedules"],
-        "summary": "Create a recurring render",
-        "operationId": "createRecurringRender",
-        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RecurringScheduleRequest" } } } },
-        "responses": {
-          "201": { "description": "Recurring schedule created", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Schedule" } } } },
-          "400": { "$ref": "#/components/responses/BadRequest" },
-          "401": { "$ref": "#/components/responses/Unauthorized" }
         }
       }
     },
     "/usage": {
       "get": {
         "tags": ["Usage"],
-        "summary": "Get account usage",
         "operationId": "getUsage",
+        "summary": "Get credit usage",
         "responses": {
-          "200": { "description": "Current account and credit usage", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Usage" } } } },
+          "200": { "description": "Current account usage", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/UsageResponse" } } } },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/render/monitors": {
+      "get": {
+        "tags": ["Monitors"],
+        "operationId": "listMonitors",
+        "summary": "List monitors",
+        "parameters": [
+          { "$ref": "#/components/parameters/Cursor" },
+          { "$ref": "#/components/parameters/Limit" }
+        ],
+        "responses": {
+          "200": { "description": "Cursor-paginated monitors", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MonitorList" } } } },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      },
+      "post": {
+        "tags": ["Monitors"],
+        "operationId": "createMonitor",
+        "summary": "Create a monitor",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MonitorWrite" } } } },
+        "responses": {
+          "201": { "description": "Monitor created and baseline queued", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MonitorResponse" } } } },
+          "400": { "$ref": "#/components/responses/BadRequest" },
           "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" }
+          "402": { "$ref": "#/components/responses/PaymentRequired" },
+          "403": { "$ref": "#/components/responses/PlanRestricted" },
+          "503": { "$ref": "#/components/responses/Unavailable" }
+        }
+      }
+    },
+    "/render/monitors/{id}": {
+      "parameters": [
+        { "$ref": "#/components/parameters/MonitorId" }
+      ],
+      "get": {
+        "tags": ["Monitors"],
+        "operationId": "getMonitor",
+        "summary": "Get a monitor",
+        "responses": {
+          "200": { "description": "Monitor", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MonitorResponse" } } } },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      },
+      "patch": {
+        "tags": ["Monitors"],
+        "operationId": "updateMonitor",
+        "summary": "Update, pause, or resume a monitor",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MonitorPatch" } } } },
+        "responses": {
+          "200": { "description": "Updated monitor", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MonitorResponse" } } } },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      },
+      "delete": {
+        "tags": ["Monitors"],
+        "operationId": "deleteMonitor",
+        "summary": "Delete a monitor",
+        "responses": {
+          "200": { "description": "Monitor deleted", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DeleteResponse" } } } },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/render/monitors/{id}/run": {
+      "post": {
+        "tags": ["Monitors"],
+        "operationId": "runMonitor",
+        "summary": "Queue a manual monitor run",
+        "parameters": [
+          { "$ref": "#/components/parameters/MonitorId" }
+        ],
+        "responses": {
+          "202": { "description": "Run queued", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MonitorRunResponse" } } } },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "402": { "$ref": "#/components/responses/PaymentRequired" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "409": { "$ref": "#/components/responses/Conflict" }
+        }
+      }
+    },
+    "/render/monitors/{id}/baseline": {
+      "post": {
+        "tags": ["Monitors"],
+        "operationId": "replaceMonitorBaseline",
+        "summary": "Replace a fixed or rolling baseline",
+        "parameters": [
+          { "$ref": "#/components/parameters/MonitorId" }
+        ],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["runId"], "properties": { "runId": { "type": "string", "format": "uuid" } }, "additionalProperties": false } } } },
+        "responses": {
+          "200": { "description": "Baseline replaced", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MonitorResponse" } } } },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/render/monitors/{id}/runs": {
+      "get": {
+        "tags": ["Monitors"],
+        "operationId": "listMonitorRuns",
+        "summary": "List monitor runs",
+        "parameters": [
+          { "$ref": "#/components/parameters/MonitorId" },
+          { "$ref": "#/components/parameters/Cursor" },
+          { "$ref": "#/components/parameters/Limit" }
+        ],
+        "responses": {
+          "200": { "description": "Cursor-paginated runs", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MonitorRunList" } } } },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/render/monitors/{id}/runs/{runId}": {
+      "get": {
+        "tags": ["Monitors"],
+        "operationId": "getMonitorRun",
+        "summary": "Get a monitor run",
+        "parameters": [
+          { "$ref": "#/components/parameters/MonitorId" },
+          { "$ref": "#/components/parameters/RunId" }
+        ],
+        "responses": {
+          "200": { "description": "Monitor run", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MonitorRunResponse" } } } },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/render/monitor-recipients": {
+      "get": {
+        "tags": ["Recipients"],
+        "operationId": "listMonitorRecipients",
+        "summary": "List alert recipients",
+        "parameters": [
+          { "$ref": "#/components/parameters/Cursor" },
+          { "$ref": "#/components/parameters/Limit" }
+        ],
+        "responses": {
+          "200": { "description": "Recipients", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RecipientList" } } } },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      },
+      "post": {
+        "tags": ["Recipients"],
+        "operationId": "createMonitorRecipient",
+        "summary": "Create or resend recipient verification",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["email"], "properties": { "email": { "type": "string", "format": "email" } }, "additionalProperties": false } } } },
+        "responses": {
+          "201": { "description": "Verification sent", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RecipientResponse" } } } },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/render/monitor-recipients/verify": {
+      "get": {
+        "tags": ["Recipients"],
+        "operationId": "verifyMonitorRecipient",
+        "summary": "Verify an alert recipient",
+        "security": [],
+        "parameters": [
+          { "name": "token", "in": "query", "required": true, "schema": { "type": "string", "minLength": 20 }, "description": "Single-use token from the verification email." }
+        ],
+        "responses": {
+          "200": { "description": "Recipient verified", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RecipientResponse" } } } },
+          "400": { "$ref": "#/components/responses/BadRequest" }
+        }
+      }
+    },
+    "/render/monitor-recipients/{id}": {
+      "delete": {
+        "tags": ["Recipients"],
+        "operationId": "deleteMonitorRecipient",
+        "summary": "Delete an alert recipient",
+        "parameters": [
+          { "$ref": "#/components/parameters/RecipientId" }
+        ],
+        "responses": {
+          "200": { "description": "Recipient deleted", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DeleteResponse" } } } },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" }
         }
       }
     }
   },
   "components": {
     "securitySchemes": {
-      "BearerAuth": {
-        "type": "http",
-        "scheme": "bearer",
-        "bearerFormat": "Scrinly API key",
-        "description": "Customer API key from the Scrinly dashboard."
-      },
-      "LegacyQueryKey": {
-        "type": "apiKey",
-        "in": "query",
-        "name": "api_key",
-        "description": "Discouraged compatibility fallback. Query credentials can leak into histories, logs, proxies, and analytics."
-      }
+      "BearerAuth": { "type": "http", "scheme": "bearer", "bearerFormat": "Scrinly API key" }
     },
     "parameters": {
-      "SnapshotUrl": { "name": "url", "in": "query", "required": true, "schema": { "$ref": "#/components/schemas/HttpUrl" } },
-      "Markdown": { "name": "markdown", "in": "query", "schema": { "type": "boolean", "default": false } },
-      "Html": { "name": "html", "in": "query", "schema": { "type": "boolean", "default": false } },
-      "Links": { "name": "links", "in": "query", "schema": { "type": "boolean", "default": false } },
-      "Images": { "name": "images", "in": "query", "schema": { "type": "boolean", "default": false } },
-      "Videos": { "name": "videos", "in": "query", "schema": { "type": "boolean", "default": false } },
-      "Fonts": { "name": "fonts", "in": "query", "schema": { "type": "boolean", "default": false } },
-      "Colors": { "name": "colors", "in": "query", "schema": { "type": "boolean", "default": false } },
-      "Structure": { "name": "structure", "in": "query", "schema": { "type": "boolean", "default": false } },
-      "Design": { "name": "design", "in": "query", "schema": { "type": "boolean", "default": false } },
-      "Interpret": { "name": "interpret", "in": "query", "schema": { "type": "boolean", "default": false }, "description": "Have a model read the blueprint back as a grounded Markdown document. Requires `blueprint=true`. Only a sanitised projection of the blueprint is sent to the provider: page copy, selectors and URLs are removed first. Adds 3 credits, or 1 with your own provider key." },
-      "Blueprint": { "name": "blueprint", "in": "query", "schema": { "type": "boolean", "default": false }, "description": "Return a reconstruction blueprint: labelled page regions carrying the motion, repeating components and generated stylesheets needed to rebuild the page. Implies `design=true`, requires synchronous mode, and refuses async or webhook delivery. Adds 6 credits." },
-      "BlueprintViewports": { "name": "viewports", "in": "query", "schema": { "type": "string", "pattern": "^(desktop|mobile)(,(desktop|mobile))*$", "default": "desktop,mobile" }, "description": "Comma-separated viewports to capture, widest first — the first is the one regions and skeletons are measured from. Only valid with `blueprint=true`; rejected otherwise rather than ignored." },
-      "BlueprintScreenshots": { "name": "screenshots", "in": "query", "schema": { "type": "boolean", "default": true }, "description": "Store one screenshot per viewport, taken in the page session the capture already opened. Set false to run a blueprint with no storage bucket configured. Only valid with `blueprint=true`." },
-      "Provider": { "name": "provider", "in": "query", "schema": { "$ref": "#/components/schemas/Provider" } },
-      "Refresh": { "name": "refresh", "in": "query", "schema": { "type": "boolean", "default": false }, "description": "Bypass the interpretation cache and regenerate the document. The capture always runs." },
-      "Async": { "name": "async", "in": "query", "schema": { "type": "boolean", "default": false } },
-      "Timeout": { "name": "timeout", "in": "query", "schema": { "type": "integer", "minimum": 10, "maximum": 60, "default": 30 } },
+      "TargetUrl": { "name": "url", "in": "query", "required": true, "schema": { "type": "string", "format": "uri", "pattern": "^https?://" } },
       "Format": { "name": "format", "in": "query", "schema": { "type": "string", "enum": ["jpg", "png"], "default": "jpg" } },
       "Quality": { "name": "quality", "in": "query", "schema": { "type": "integer", "minimum": 1, "maximum": 100, "default": 80 } },
-      "Width": { "name": "width", "in": "query", "schema": { "type": "integer", "minimum": 100, "maximum": 3840, "default": 1920 } },
-      "Height": { "name": "height", "in": "query", "schema": { "type": "integer", "minimum": 100, "maximum": 2160, "default": 1080 } },
+      "Width": { "name": "width", "in": "query", "schema": { "type": "integer", "minimum": 320, "maximum": 3840, "default": 1280 } },
+      "Height": { "name": "height", "in": "query", "schema": { "type": "integer", "minimum": 240, "maximum": 2160, "default": 720 } },
+      "Device": { "name": "device", "in": "query", "schema": { "type": "string" }, "description": "Server-supported device preset; overrides width and height." },
       "FullPage": { "name": "fullPage", "in": "query", "schema": { "type": "boolean", "default": false } },
       "Theme": { "name": "theme", "in": "query", "schema": { "type": "string", "enum": ["light", "dark"], "default": "light" } },
       "Store": { "name": "store", "in": "query", "schema": { "type": "boolean", "default": false } },
-      "ProviderApiKey": {
-        "name": "X-Scrinly-Provider-API-Key",
-        "in": "header",
-        "required": false,
-        "schema": { "type": "string", "writeOnly": true },
-        "description": "Ephemeral server-to-server key for the selected AI provider. Never put it in a URL or JSON body."
-      },
+      "StoragePath": { "name": "storage_path", "in": "query", "schema": { "type": "string" } },
+      "Regions": { "name": "regions", "in": "query", "schema": { "type": "boolean", "default": false }, "description": "Adds ordered full-page crops and two credits; implies full-page storage." },
+      "StyleGuide": { "name": "styleGuide", "in": "query", "schema": { "type": "boolean", "default": false }, "description": "Adds a GPT-5.6 Luna Visual Style Guide; implies regions and stored full-page capture." },
+      "Regenerate": { "name": "regenerate", "in": "query", "schema": { "type": "boolean", "default": false }, "description": "Bypasses only the seven-day Style Guide cache. Requires styleGuide=true." },
+      "Cache": { "name": "cache", "in": "query", "schema": { "type": "boolean", "default": false } },
+      "Async": { "name": "async", "in": "query", "schema": { "type": "boolean", "default": false } },
+      "ProviderApiKey": { "name": "X-Scrinly-Provider-API-Key", "in": "header", "required": false, "schema": { "type": "string", "writeOnly": true, "maxLength": 1024 }, "description": "Ephemeral OpenAI BYOK for Visual Style Guide. Server-to-server and synchronous only." },
       "JobId": { "name": "jobId", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } },
-      "CrawlId": { "name": "crawlId", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } },
-      "ScheduleId": { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+      "MonitorId": { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } },
+      "RunId": { "name": "runId", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } },
+      "RecipientId": { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } },
+      "Cursor": { "name": "cursor", "in": "query", "schema": { "type": "string" } },
+      "Limit": { "name": "limit", "in": "query", "schema": { "type": "integer", "minimum": 1, "maximum": 100, "default": 50 } }
     },
     "headers": {
-      "CreditsCharged": { "description": "Credits charged before refunds.", "schema": { "type": "integer", "minimum": 0 } },
-      "CreditsRefunded": { "description": "Credits refunded by this request.", "schema": { "type": "integer", "minimum": 0 } },
-      "CreditsRemaining": { "description": "Credits left in the current account period.", "schema": { "type": "integer", "minimum": 0 } },
-      "LlmProvider": { "description": "Selected AI provider for the interpretation.", "schema": { "type": "string", "enum": ["deepseek", "openai"] } },
-      "RetryAfter": { "description": "Seconds to wait before retrying.", "schema": { "type": "integer", "minimum": 1 } }
+      "StorageUrl": { "description": "Direct URL for the complete stored output.", "schema": { "type": "string", "format": "uri" } },
+      "CreditsUsed": { "description": "Credits used in the current allowance after settlement.", "schema": { "type": "integer" } },
+      "CreditsLimit": { "description": "Account credit allowance.", "schema": { "type": "integer" } },
+      "LlmProvider": { "description": "Selected Style Guide provider.", "schema": { "type": "string", "const": "openai" } }
     },
     "responses": {
-      "SnapshotResult": {
-        "description": "Snapshot, optionally carrying a blueprint and its interpretation. `blueprint_only` reports a capture that succeeded with a failed interpretation.",
+      "ScreenshotSuccess": {
+        "description": "Binary or JSON screenshot result. JSON may be partial when an add-on failed.",
         "headers": {
-          "X-Credits-Charged": { "$ref": "#/components/headers/CreditsCharged" },
-          "X-Credits-Refunded": { "$ref": "#/components/headers/CreditsRefunded" },
-          "X-Credits-Remaining": { "$ref": "#/components/headers/CreditsRemaining" },
+          "X-Scrinly-Storage-URL": { "$ref": "#/components/headers/StorageUrl" },
+          "X-Scrinly-Credits-Used": { "$ref": "#/components/headers/CreditsUsed" },
+          "X-Scrinly-Credits-Limit": { "$ref": "#/components/headers/CreditsLimit" },
           "X-Scrinly-LLM-Provider": { "$ref": "#/components/headers/LlmProvider" }
-        },
-        "content": {
-          "application/json": {
-            "schema": { "$ref": "#/components/schemas/SnapshotResponse" }
-          }
-        }
-      },
-      "ScreenshotResult": {
-        "description": "Raw image bytes, or JSON when storage or design extraction is enabled.",
-        "headers": {
-          "X-Credits-Charged": { "$ref": "#/components/headers/CreditsCharged" },
-          "X-Credits-Remaining": { "$ref": "#/components/headers/CreditsRemaining" }
         },
         "content": {
           "image/jpeg": { "schema": { "type": "string", "contentEncoding": "binary" } },
           "image/png": { "schema": { "type": "string", "contentEncoding": "binary" } },
-          "application/json": { "schema": { "$ref": "#/components/schemas/ScreenshotStoredResponse" } }
+          "application/json": { "schema": { "oneOf": [ { "$ref": "#/components/schemas/ScreenshotResponse" }, { "$ref": "#/components/schemas/ScreenshotPartialResponse" } ] } }
         }
       },
-      "JobAccepted": {
-        "description": "Job accepted for asynchronous processing.",
-        "headers": {
-          "X-Credits-Charged": { "$ref": "#/components/headers/CreditsCharged" },
-          "X-Credits-Remaining": { "$ref": "#/components/headers/CreditsRemaining" }
-        },
-        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/JobAccepted" } } }
-      },
-      "BatchResult": {
-        "description": "Per-item batch acceptance or validation results.",
-        "headers": {
-          "X-Credits-Charged": { "$ref": "#/components/headers/CreditsCharged" },
-          "X-Credits-Refunded": { "$ref": "#/components/headers/CreditsRefunded" },
-          "X-Credits-Remaining": { "$ref": "#/components/headers/CreditsRemaining" }
-        },
-        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/BatchResponse" } } }
-      },
-      "BadRequest": { "description": "Invalid request", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
-      "Unauthorized": { "description": "Missing, unknown, or revoked API key", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
-      "PaymentRequired": { "description": "Credit limit reached", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
-      "Forbidden": { "description": "Account is deactivated", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
-      "NotFound": { "description": "Resource not found for this account", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
-      "RateLimited": { "description": "Rate limited", "headers": { "Retry-After": { "$ref": "#/components/headers/RetryAfter" } }, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
-      "ProviderUnavailable": { "description": "Selected platform-funded AI provider is not configured", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/InterpretationError" } } } }
+      "AsyncAccepted": { "description": "Job accepted", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AsyncAccepted" } } } },
+      "BatchResult": { "description": "Per-item acceptance; 207 means partial acceptance.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/BatchResponse" } } } },
+      "BadRequest": { "description": "Validation failed", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+      "Unauthorized": { "description": "Invalid or missing Scrinly key", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+      "PaymentRequired": { "description": "Credit allowance exhausted", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+      "PlanRestricted": { "description": "Plan does not allow the requested monitor capacity or cadence", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+      "NotFound": { "description": "Unknown or cross-account resource", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+      "Conflict": { "description": "Conflicting run or state transition", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+      "TooLarge": { "description": "Request or image exceeds limits", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+      "CaptureFailed": { "description": "Complete finite screenshot could not be produced", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+      "DiffFailed": { "description": "Source integrity or diff processing failed; credit refunded", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+      "RateLimited": { "description": "Host or provider rate limit", "headers": { "Retry-After": { "schema": { "type": "integer" } } }, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+      "Unavailable": { "description": "Required platform configuration or provider unavailable", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
     },
     "schemas": {
-      "HttpUrl": { "type": "string", "format": "uri", "maxLength": 2048, "pattern": "^https?://" },
-      "Provider": { "type": "string", "enum": ["deepseek", "openai"], "default": "deepseek" },
+      "ScreenshotRequest": {
+        "type": "object",
+        "required": ["url"],
+        "additionalProperties": false,
+        "properties": {
+          "url": { "type": "string", "format": "uri", "pattern": "^https?://" },
+          "format": { "type": "string", "enum": ["jpg", "png"], "default": "jpg" },
+          "quality": { "type": "integer", "minimum": 1, "maximum": 100, "default": 80 },
+          "width": { "type": "integer", "minimum": 320, "maximum": 3840, "default": 1280 },
+          "height": { "type": "integer", "minimum": 240, "maximum": 2160, "default": 720 },
+          "device": { "type": "string", "description": "Server-supported preset; overrides width and height." },
+          "fullPage": { "type": "boolean", "default": false },
+          "theme": { "type": "string", "enum": ["light", "dark"], "default": "light" },
+          "timeout": { "type": "integer", "minimum": 10, "maximum": 60, "default": 30 },
+          "waitUntil": { "type": "string", "enum": ["load", "domcontentloaded", "networkidle0", "networkidle2"], "default": "networkidle2" },
+          "blockCookieBanners": { "type": "boolean" },
+          "blockAds": { "type": "boolean" },
+          "blockChatWidgets": { "type": "boolean" },
+          "blockPopups": { "type": "boolean" },
+          "blockAccessibilityWidgets": { "type": "boolean" },
+          "hideSelectors": { "type": "array", "items": { "type": "string" } },
+          "clickSelectors": { "type": "array", "items": { "type": "string" } },
+          "scrollToElement": { "type": "string" },
+          "headers": { "type": "object", "additionalProperties": { "type": "string" }, "writeOnly": true },
+          "cookies": { "type": "array", "items": { "$ref": "#/components/schemas/Cookie" }, "writeOnly": true },
+          "store": { "type": "boolean", "default": false },
+          "storage_path": { "type": "string" },
+          "storage_provider": { "type": "string", "enum": ["b2", "s3", "r2"] },
+          "storage_bucket": { "type": "string" },
+          "storage_endpoint": { "type": "string", "format": "uri", "writeOnly": true },
+          "storage_region": { "type": "string" },
+          "storage_access_key_id": { "type": "string", "writeOnly": true },
+          "storage_secret_access_key": { "type": "string", "writeOnly": true },
+          "storage_application_key_id": { "type": "string", "writeOnly": true },
+          "storage_application_key": { "type": "string", "writeOnly": true },
+          "storage_public_domain": { "type": "string", "format": "uri" },
+          "storage_return_location": { "type": "boolean", "default": false },
+          "regions": { "type": "boolean", "default": false },
+          "design": { "type": "boolean", "default": false, "description": "Advanced raw observed design evidence." },
+          "styleGuide": {
+            "oneOf": [
+              { "type": "boolean" },
+              { "type": "object", "properties": { "regenerate": { "type": "boolean", "default": false } }, "additionalProperties": false }
+            ],
+            "default": false
+          },
+          "regenerate": { "type": "boolean", "default": false, "description": "Requires Style Guide; bypasses only its AI cache." },
+          "cache": { "type": "boolean", "default": false },
+          "async": { "type": "boolean", "default": false },
+          "webhookUrl": { "type": "string", "format": "uri" },
+          "webhookSecret": { "type": "string", "writeOnly": true },
+          "priority": { "type": "string", "enum": ["low", "normal", "high"], "default": "normal" }
+        }
+      },
       "Cookie": {
         "type": "object",
-        "additionalProperties": false,
         "required": ["name", "value"],
         "properties": {
-          "name": { "type": "string", "minLength": 1 },
-          "value": { "type": "string" },
+          "name": { "type": "string" },
+          "value": { "type": "string", "writeOnly": true },
           "domain": { "type": "string" },
           "path": { "type": "string" },
-          "expires": { "type": "number" },
           "httpOnly": { "type": "boolean" },
           "secure": { "type": "boolean" },
           "sameSite": { "type": "string", "enum": ["Strict", "Lax", "None"] }
-        }
+        },
+        "additionalProperties": false
       },
-      "RenderOptions": {
+      "Media": {
         "type": "object",
+        "required": ["stored", "url", "contentType"],
         "properties": {
-          "url": { "$ref": "#/components/schemas/HttpUrl" },
-          "timeout": { "type": "integer", "minimum": 10, "maximum": 60, "default": 30 },
-          "waitUntil": { "type": "string", "enum": ["load", "domcontentloaded", "networkidle0", "networkidle2"], "default": "networkidle2" },
-          "width": { "type": "integer", "minimum": 100, "maximum": 3840 },
-          "height": { "type": "integer", "minimum": 100, "maximum": 2160 },
-          "device": { "type": "string", "description": "Supported device preset; overrides width and height." },
-          "theme": { "type": "string", "enum": ["light", "dark"], "default": "light" },
-          "blockCookieBanners": { "type": "boolean", "default": true },
-          "blockAds": { "type": "boolean", "default": true },
-          "blockChatWidgets": { "type": "boolean", "default": true },
-          "blockPopups": { "type": "boolean", "default": true },
-          "blockAccessibilityWidgets": { "type": "boolean", "default": true },
-          "hideSelectors": { "type": "array", "items": { "type": "string", "minLength": 1 } },
-          "clickSelectors": { "type": "array", "items": { "type": "string", "minLength": 1 } },
-          "scrollToElement": { "type": "string", "minLength": 1 },
-          "headers": { "type": "object", "additionalProperties": { "type": "string" }, "writeOnly": true },
-          "cookies": { "type": "array", "items": { "$ref": "#/components/schemas/Cookie" }, "writeOnly": true },
-          "priority": { "type": "string", "enum": ["low", "normal", "high"], "default": "normal" },
-          "cache": { "type": "boolean", "default": false },
-          "webhookUrl": { "$ref": "#/components/schemas/HttpUrl" },
-          "webhookSecret": { "type": "string", "writeOnly": true },
-          "store": { "type": "boolean", "default": false },
-          "storage_provider": { "type": "string", "enum": ["b2", "s3", "r2"] },
-          "storage_path": { "type": "string" },
-          "storage_bucket": { "type": "string" },
-          "storage_endpoint": { "type": "string", "format": "uri" },
-          "storage_region": { "type": "string", "default": "auto" },
-          "storage_access_key_id": { "type": "string", "writeOnly": true },
-          "storage_secret_access_key": { "type": "string", "writeOnly": true },
-          "storage_public_domain": { "type": "string", "format": "uri" },
-          "storage_return_location": { "type": "boolean" }
-        }
+          "stored": { "type": "boolean", "const": true },
+          "url": { "type": "string", "format": "uri", "description": "Direct B2, S3, or R2 URL." },
+          "key": { "type": "string" },
+          "location": { "type": "string" },
+          "contentType": { "type": "string", "enum": ["image/jpeg", "image/png"] },
+          "width": { "type": "integer" },
+          "height": { "type": "integer" },
+          "bytes": { "type": "integer" },
+          "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+        },
+        "additionalProperties": true
       },
-      "SnapshotRequest": {
-        "allOf": [
-          { "$ref": "#/components/schemas/RenderOptions" },
-          {
-            "type": "object",
-            "required": ["url"],
-            "properties": {
-              "url": { "$ref": "#/components/schemas/HttpUrl" },
-              "markdown": { "type": "boolean", "default": false },
-              "html": { "type": "boolean", "default": false },
-              "links": { "type": "boolean", "default": false },
-              "images": { "type": "boolean", "default": false },
-              "videos": { "type": "boolean", "default": false },
-              "fonts": { "type": "boolean", "default": false },
-              "colors": { "type": "boolean", "default": false },
-              "structure": { "type": "boolean", "default": false },
-              "design": { "type": "boolean", "default": false },
-              "blueprint": { "type": "boolean", "default": false, "description": "Implies design and requires synchronous mode. Adds 6 credits." },
-              "viewports": { "type": "array", "items": { "type": "string", "enum": ["desktop", "mobile"] }, "default": ["desktop", "mobile"], "description": "Widest first. Only valid with blueprint=true." },
-              "screenshots": { "type": "boolean", "default": true, "description": "One stored screenshot per viewport. Only valid with blueprint=true." },
-              "interpret": { "type": "boolean", "default": false, "description": "Generate a grounded prose reading of the blueprint. Only valid with blueprint=true. Adds 3 credits, or 1 with your own provider key." },
-              "provider": { "$ref": "#/components/schemas/Provider" },
-              "refresh": { "type": "boolean", "default": false },
-              "async": { "type": "boolean", "default": false }
-            }
-          }
-        ]
-      },
-      "ScreenshotRequest": {
-        "allOf": [
-          { "$ref": "#/components/schemas/RenderOptions" },
-          {
-            "type": "object",
-            "required": ["url"],
-            "properties": {
-              "url": { "$ref": "#/components/schemas/HttpUrl" },
-              "format": { "type": "string", "enum": ["jpg", "png"], "default": "jpg" },
-              "quality": { "type": "integer", "minimum": 1, "maximum": 100, "default": 80 },
-              "fullPage": { "type": "boolean", "default": false },
-              "design": { "type": "boolean", "default": false },
-              "async": { "type": "boolean", "default": false }
-            }
-          }
-        ]
-      },
-      "AsyncRenderRequest": {
-        "allOf": [
-          { "$ref": "#/components/schemas/RenderOptions" },
-          {
-            "type": "object",
-            "required": ["url"],
-            "properties": {
-              "url": { "$ref": "#/components/schemas/HttpUrl" },
-              "screenshot": { "type": "boolean", "default": false },
-              "format": { "type": "string", "enum": ["jpg", "png"], "default": "jpg" },
-              "quality": { "type": "integer", "minimum": 1, "maximum": 100, "default": 80 },
-              "fullPage": { "type": "boolean", "default": false },
-              "extractMetadata": { "type": "boolean" },
-              "extractMarkdown": { "type": "boolean" },
-              "extractHtml": { "type": "boolean" },
-              "extractLinks": { "type": "boolean" },
-              "extractImages": { "type": "boolean" },
-              "extractVideos": { "type": "boolean" },
-              "extractFonts": { "type": "boolean" },
-              "extractColors": { "type": "boolean" },
-              "extractStructure": { "type": "boolean" },
-              "extractDesign": { "type": "boolean" }
-            }
-          }
-        ]
-      },
-      "BatchRequest": {
-        "allOf": [
-          { "$ref": "#/components/schemas/RenderOptions" },
-          {
-            "type": "object",
-            "required": ["urls"],
-            "properties": {
-              "urls": { "type": "array", "minItems": 1, "maxItems": 100, "items": { "$ref": "#/components/schemas/HttpUrl" } },
-              "screenshot": { "type": "boolean", "default": false },
-              "format": { "type": "string", "enum": ["jpg", "png"], "default": "jpg" },
-              "extractMarkdown": { "type": "boolean" },
-              "extractHtml": { "type": "boolean" },
-              "extractLinks": { "type": "boolean" },
-              "extractStructure": { "type": "boolean" }
-            }
-          }
-        ]
-      },
-      "CrawlRequest": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": ["url"],
-        "properties": {
-          "url": { "$ref": "#/components/schemas/HttpUrl" },
-          "maxPages": { "type": "integer", "minimum": 1, "maximum": 5000, "default": 50 },
-          "maxDepth": { "type": "integer", "minimum": 0, "maximum": 10, "default": 3 },
-          "maxConcurrentPages": { "type": "integer", "minimum": 1, "maximum": 10, "default": 3 },
-          "maxDurationMs": { "type": "integer", "minimum": 1000, "maximum": 21600000, "default": 1800000 },
-          "scope": { "type": "string", "enum": ["origin", "host", "domain", "any"], "default": "origin" },
-          "includePaths": { "type": "array", "items": { "type": "string" } },
-          "excludePaths": { "type": "array", "items": { "type": "string" } },
-          "followBinary": { "type": "boolean", "default": false },
-          "robots": { "type": "string", "enum": ["obey", "ignore"], "default": "obey", "description": "`ignore` requires a domain verified for this account and is rejected with `scope: any`. The override never applies off the verified host." },
-          "markdown": { "type": "boolean", "default": true },
-          "html": { "type": "boolean", "default": false },
-          "structure": { "type": "boolean", "default": false },
-          "store": { "type": "boolean", "default": true },
-          "storage_path": { "type": "string", "default": "crawls" },
-          "query": { "type": "string", "enum": ["normalise", "strip", "keep"], "default": "normalise" },
-          "webhookUrl": { "$ref": "#/components/schemas/HttpUrl" },
-          "webhookSecret": { "type": "string", "writeOnly": true }
-        }
-      },
-      "ScheduledRenderRequest": {
-        "allOf": [
-          { "$ref": "#/components/schemas/AsyncRenderRequest" },
-          { "type": "object", "required": ["scheduleAt"], "properties": { "scheduleAt": { "type": "string", "format": "date-time" } } }
-        ]
-      },
-      "BulkScheduleRequest": {
-        "type": "object",
-        "description": "One `scheduleAt` per job, not one for the whole request — the point of this endpoint is scheduling different URLs for different times in one call.",
-        "required": ["jobs"],
-        "properties": {
-          "jobs": {
-            "type": "array",
-            "minItems": 1,
-            "maxItems": 100,
-            "items": {
-              "allOf": [
-                { "$ref": "#/components/schemas/RenderOptions" },
-                {
-                  "type": "object",
-                  "required": ["url", "scheduleAt"],
-                  "properties": {
-                    "url": { "$ref": "#/components/schemas/HttpUrl" },
-                    "scheduleAt": { "type": "string", "format": "date-time", "description": "Must be in the future." }
-                  }
-                }
-              ]
-            }
-          }
-        }
-      },
-      "RecurringScheduleRequest": {
-        "allOf": [
-          { "$ref": "#/components/schemas/AsyncRenderRequest" },
-          {
-            "type": "object",
-            "required": ["pattern"],
-            "properties": {
-              "pattern": { "type": "string", "description": "Five-field UTC cron. Fields support *, one literal, or */n." },
-              "endDate": { "type": "string", "format": "date-time" },
-              "limit": { "type": "integer", "minimum": 1 }
-            }
-          }
-        ]
-      },
-      "Error": {
-        "type": "object",
-        "properties": {
-          "success": { "type": "boolean", "const": false },
-          "error": { "type": "string" },
-          "type": { "type": "string" },
-          "message": { "type": "string" },
-          "fields": { "type": "array", "items": { "$ref": "#/components/schemas/FieldError" } }
-        }
-      },
-      "FieldError": { "type": "object", "properties": { "field": { "type": "string" }, "message": { "type": "string" } }, "required": ["field", "message"] },
       "Credits": {
         "type": "object",
         "required": ["charged", "refunded", "net"],
@@ -743,320 +518,306 @@
           "net": { "type": "integer", "minimum": 0 }
         }
       },
-      "Design": {
+      "Bounds": {
         "type": "object",
-        "description": "Deterministic extraction of authored tokens and observed design signals.",
+        "required": ["x", "y", "width", "height"],
         "properties": {
-          "tokens": { "type": "object", "additionalProperties": true },
-          "color": { "type": "object", "additionalProperties": true },
-          "typography": { "type": "object", "additionalProperties": true },
-          "breakpoints": { "type": "array", "items": { "type": "object", "additionalProperties": true } },
-          "motion": { "type": "object", "additionalProperties": true },
-          "libraries": { "type": "array", "items": { "type": "object", "additionalProperties": true } },
-          "coverage": { "type": "object", "additionalProperties": true }
+          "x": { "type": "integer", "minimum": 0 },
+          "y": { "type": "integer", "minimum": 0 },
+          "width": { "type": "integer", "minimum": 1 },
+          "height": { "type": "integer", "minimum": 1 }
+        }
+      },
+      "RegionSpec": {
+        "type": "object",
+        "required": ["summary", "claims", "confidence", "evidencePartIds"],
+        "properties": {
+          "summary": { "type": "string" },
+          "claims": { "type": "array", "items": { "$ref": "#/components/schemas/StyleClaim" } },
+          "confidence": { "type": "string", "enum": ["high", "medium", "low"] },
+          "evidencePartIds": { "type": "array", "items": { "type": "string" } }
+        }
+      },
+      "StyleClaim": {
+        "type": "object",
+        "required": ["category", "basis", "statement"],
+        "properties": {
+          "category": { "type": "string", "enum": ["visual_role", "layout", "hierarchy", "color", "typography", "spacing", "components", "states", "motion", "responsive"] },
+          "basis": { "type": "string", "enum": ["observed", "inferred"] },
+          "statement": { "type": "string" }
+        }
+      },
+      "RegionPart": {
+        "type": "object",
+        "required": ["id", "index", "bounds", "media"],
+        "properties": {
+          "id": { "type": "string" },
+          "index": { "type": "integer", "minimum": 0 },
+          "bounds": { "$ref": "#/components/schemas/Bounds" },
+          "media": { "$ref": "#/components/schemas/Media" }
+        }
+      },
+      "Region": {
+        "type": "object",
+        "required": ["id", "order", "kind", "label", "confidence", "evidenceKinds", "bounds", "parts"],
+        "properties": {
+          "id": { "type": "string" },
+          "order": { "type": "integer", "minimum": 0 },
+          "kind": { "type": "string", "enum": ["navigation", "hero", "content", "features", "pricing", "testimonials", "faq", "logos", "cta", "footer"] },
+          "label": { "type": "string" },
+          "confidence": { "type": "string", "enum": ["high", "medium", "low"] },
+          "evidenceKinds": { "type": "array", "items": { "type": "string" } },
+          "bounds": { "$ref": "#/components/schemas/Bounds" },
+          "parts": { "type": "array", "items": { "$ref": "#/components/schemas/RegionPart" } },
+          "spec": { "$ref": "#/components/schemas/RegionSpec" }
+        }
+      },
+      "Regions": {
+        "type": "object",
+        "required": ["version", "coordinateSpace", "screenshot", "limits", "items", "coverage"],
+        "properties": {
+          "version": { "type": "string", "const": "regions-v1" },
+          "coordinateSpace": { "type": "string", "const": "screenshot_pixels" },
+          "screenshot": { "type": "object", "properties": { "width": { "type": "integer" }, "height": { "type": "integer" }, "sha256": { "type": "string" } }, "required": ["width", "height", "sha256"] },
+          "limits": { "type": "object", "properties": { "maxRegionHeight": { "type": "integer", "const": 1600 }, "maxAssets": { "type": "integer", "const": 32 } }, "required": ["maxRegionHeight", "maxAssets"] },
+          "items": { "type": "array", "maxItems": 32, "items": { "$ref": "#/components/schemas/Region" } },
+          "coverage": { "$ref": "#/components/schemas/Coverage" }
+        }
+      },
+      "Coverage": {
+        "type": "object",
+        "properties": {
+          "ratio": { "type": "number", "minimum": 0, "maximum": 1 },
+          "truncated": { "type": "boolean" },
+          "omittedAssets": { "type": "integer", "minimum": 0 },
+          "safeCuts": { "type": "integer", "minimum": 0 },
+          "forcedCuts": { "type": "integer", "minimum": 0 }
         },
         "additionalProperties": true
       },
-      "ProviderMetadata": {
+      "StyleGuide": {
         "type": "object",
-        "required": ["label", "model", "credentialMode"],
+        "required": ["version", "summary", "document", "promptVersion", "schemaVersion", "projectionVersion", "visionVersion", "grounding", "coverage", "source", "provider", "usage", "cache"],
         "properties": {
-          "label": { "$ref": "#/components/schemas/Provider" },
-          "model": { "type": "string", "readOnly": true, "description": "Server-selected model." },
-          "host": { "type": "string" },
-          "credentialMode": { "type": "string", "enum": ["platform", "byok"] },
-          "dataPolicy": { "type": "object", "additionalProperties": true, "description": "Training, retention and residency terms for the selected provider." },
-          "dataResidency": { "type": ["string", "null"] },
-          "settings": { "type": "object", "additionalProperties": true },
-          "latencyMs": { "type": "integer", "minimum": 0 },
-          "finishReason": { "type": ["string", "null"] }
+          "version": { "type": "string", "const": "style-guide-v1" },
+          "summary": { "type": "string" },
+          "document": { "type": "string", "description": "Fixed-heading Markdown." },
+          "promptVersion": { "type": "string" },
+          "schemaVersion": { "type": "string", "const": "style-guide-v1" },
+          "projectionVersion": { "type": "string" },
+          "visionVersion": { "type": "string" },
+          "sections": { "type": "object", "additionalProperties": { "type": "string" } },
+          "grounding": { "type": "object", "required": ["status", "unknownLiteralCount"], "properties": { "status": { "type": "string", "enum": ["clean", "flagged"] }, "reason": { "type": ["string", "null"] }, "unknownLiteralCount": { "type": "integer", "minimum": 0 }, "diagnostics": { "type": "object", "additionalProperties": true } } },
+          "coverage": { "$ref": "#/components/schemas/Coverage" },
+          "source": { "type": "object", "properties": { "screenshotSha256": { "type": "string" }, "regionParts": { "type": "array", "items": { "type": "object", "properties": { "id": { "type": "string" }, "sha256": { "type": "string" } }, "required": ["id", "sha256"] } } }, "required": ["screenshotSha256", "regionParts"] },
+          "provider": { "type": "object", "properties": { "label": { "type": "string", "const": "openai" }, "model": { "type": "string", "const": "gpt-5.6-luna" }, "credentialMode": { "type": "string", "enum": ["platform", "byok"] }, "inputMode": { "type": "string", "const": "overview_and_region_crops" }, "dataResidency": { "type": "string" }, "dataPolicy": { "type": "object", "additionalProperties": { "type": "string" } }, "settings": { "type": "object", "additionalProperties": true }, "latencyMs": { "type": "integer" }, "finishReason": { "type": "string" } }, "required": ["label", "model", "credentialMode", "inputMode"] },
+          "usage": { "$ref": "#/components/schemas/TokenUsage" },
+          "cache": { "type": "object", "required": ["hit"], "properties": { "hit": { "type": "boolean" } } }
         }
       },
       "TokenUsage": {
         "type": "object",
         "properties": {
-          "inputTokens": { "type": "integer", "minimum": 0 },
-          "outputTokens": { "type": "integer", "minimum": 0 },
-          "totalTokens": { "type": "integer", "minimum": 0 },
-          "cacheHitTokens": { "type": "integer", "minimum": 0 },
-          "cacheMissTokens": { "type": "integer", "minimum": 0 },
-          "reasoningTokens": { "type": "integer", "minimum": 0 },
-          "providerDetails": { "type": "object", "additionalProperties": true }
+          "inputTokens": { "type": "integer" },
+          "outputTokens": { "type": "integer" },
+          "totalTokens": { "type": "integer" },
+          "cacheHitTokens": { "type": "integer" },
+          "cacheMissTokens": { "type": "integer" },
+          "reasoningTokens": { "type": "integer" },
+          "providerDetails": { "type": "object", "additionalProperties": { "type": "integer" } }
         }
       },
-      "Grounding": {
-        "type": "object",
-        "description": "Whether every CSS literal in the document traced back to the projection. More than five untraceable literals, a missing heading, or truncation refuses the generation rather than returning it.",
-        "required": ["status", "unknownLiterals"],
-        "properties": {
-          "status": { "type": "string", "enum": ["clean", "flagged"] },
-          "unknownLiterals": { "type": "array", "maxItems": 5, "items": { "type": "string" }, "description": "Literals absent from the projection. Empty when status is clean." }
-        }
-      },
-      "Interpretation": {
-        "type": "object",
-        "description": "A grounded Markdown reading of the blueprint, present only with `interpret=true`. Generated from a sanitised projection — page copy, selectors and URLs are removed before anything reaches the provider — and refused rather than returned if it cites a value the projection does not contain.",
-        "required": ["document", "promptVersion", "sections", "grounding", "coverage", "provider", "usage", "cache"],
-        "properties": {
-          "document": { "type": "string", "description": "Grounded Markdown document." },
-          "promptVersion": { "type": "string" },
-          "sections": { "type": "object", "additionalProperties": { "type": "string" } },
-          "grounding": { "$ref": "#/components/schemas/Grounding" },
-          "coverage": { "type": "object", "additionalProperties": true },
-          "provider": { "$ref": "#/components/schemas/ProviderMetadata" },
-          "usage": { "$ref": "#/components/schemas/TokenUsage" },
-          "cache": {
-            "type": "object",
-            "required": ["hit"],
-            "properties": { "hit": { "type": "boolean", "description": "True when this document came from the interpretation cache." } }
-          }
-        }
-      },
-      "BulkScheduleResponse": {
-        "type": "object",
-        "description": "Per-item scheduling results. `success` is false on a 207: some jobs were rejected and the rest were scheduled.",
-        "required": ["success", "total", "scheduled", "failed", "jobs"],
-        "properties": {
-          "success": { "type": "boolean", "description": "True only when every job was scheduled." },
-          "total": { "type": "integer", "minimum": 0, "description": "Jobs submitted." },
-          "scheduled": { "type": "integer", "minimum": 0 },
-          "failed": { "type": "integer", "minimum": 0 },
-          "jobs": {
-            "type": "array",
-            "description": "The jobs that were scheduled, each keyed back to its index in the request.",
-            "items": {
-              "type": "object",
-              "properties": {
-                "index": { "type": "integer", "minimum": 0 },
-                "id": { "type": "string", "format": "uuid" },
-                "url": { "$ref": "#/components/schemas/HttpUrl" },
-                "scheduledFor": { "type": "string", "format": "date-time" }
-              }
-            }
-          },
-          "errors": {
-            "type": "array",
-            "description": "Present only when at least one job was rejected.",
-            "items": {
-              "type": "object",
-              "properties": {
-                "index": { "type": "integer", "minimum": 0 },
-                "url": { "type": "string" },
-                "error": { "type": "string" }
-              }
-            }
-          }
-        }
-      },
-      "Blueprint": {
-        "type": "object",
-        "description": "Everything needed to rebuild the page, attributed to the parts of the page it belongs to. Motion and responsive layout are filed under regions rather than listed flat, so \"what does the hero do\" is answerable. `url`, `metadata`, `markdown`, `links`, `images` and `design` are not restated here — they are already top-level fields of the same response.",
-        "required": ["version", "viewports", "regions", "limitations", "stats"],
-        "properties": {
-          "version": { "type": "integer", "const": 1 },
-          "viewports": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "name": { "type": "string", "enum": ["desktop", "mobile"] },
-                "width": { "type": "integer" },
-                "height": { "type": "integer" },
-                "documentHeight": { "type": ["number", "null"] },
-                "screenshot": { "type": ["string", "null"], "format": "uri", "description": "Stored image URL, or null when `screenshots=false`." }
-              }
-            }
-          },
-          "regions": { "type": "array", "items": { "$ref": "#/components/schemas/BlueprintRegion" } },
-          "repeaters": { "type": "array", "items": { "type": "object", "additionalProperties": true }, "description": "Structures repeated across the page — N siblings sharing a shape, which is a component in a loop." },
-          "tech": { "type": "array", "items": { "$ref": "#/components/schemas/BlueprintTech" } },
-          "stylesheets": { "type": "object", "additionalProperties": { "type": "string" }, "description": "Generated CSS, returned inline rather than stored so a blueprint stays one call: `tokens.css`, `keyframes.css`, `states.css`, `responsive.css`. Empty files are omitted." },
-          "motionOrphans": { "type": "array", "items": { "$ref": "#/components/schemas/BlueprintMotion" }, "description": "Animations that could not be filed under a region. Present only when non-empty — an orphan means element identity and the motion readout disagreed, which is surfaced rather than dropped." },
-          "instrumentation": { "type": ["object", "null"], "additionalProperties": true, "description": "Health of the motion capture, including which recovery tiers degraded." },
-          "limitations": {
-            "type": "array",
-            "description": "What was found but could not be explained. Read this before treating a rebuild as complete.",
-            "items": {
-              "type": "object",
-              "properties": {
-                "kind": { "type": "string", "enum": ["webgl", "instrumentation", "screenshots", "application-logic"] },
-                "note": { "type": "string" },
-                "count": { "type": "integer" },
-                "detail": { "type": "array", "items": { "type": "string" } }
-              }
-            }
-          },
-          "truncated": { "type": "array", "items": { "type": "string" }, "description": "Caps that were hit, e.g. `region-skeleton`." },
-          "stats": { "type": "object", "additionalProperties": true, "description": "regions, labelled, nodesCaptured, nodesInSkeleton, motion, orphanedMotion, components." },
-          "capturedAt": { "type": "string", "format": "date-time" },
-          "interpretation": { "$ref": "#/components/schemas/Interpretation" },
-          "interpretationError": { "$ref": "#/components/schemas/InterpretationError" }
-        }
-      },
-      "BlueprintRegion": {
-        "type": "object",
-        "description": "One observed section of the page. Segmentation is measurement; the label is inference, carries its evidence, and is null rather than a guess when the evidence does not support one.",
-        "properties": {
-          "id": { "type": "string", "description": "Matches the `data-scrinly-id` stamped on the captured element, and joins motion to layout." },
-          "order": { "type": "integer", "description": "Document order, top to bottom." },
-          "label": { "type": ["string", "null"], "enum": ["nav", "hero", "features", "logos", "pricing", "testimonials", "faq", "cta", "footer", null] },
-          "confidence": { "type": ["string", "null"], "enum": ["high", "medium", null], "description": "Null whenever `label` is null, including when two regions competed for the same label and neither won outright." },
-          "evidence": { "type": "array", "items": { "type": "string" }, "description": "Why this label, e.g. `tag:header`, `text:pricing`." },
-          "selector": { "type": "string" },
-          "tag": { "type": "string" },
-          "box": { "type": ["array", "null"], "items": { "type": "number" }, "minItems": 4, "maxItems": 4, "description": "[top, left, width, height] in CSS pixels at the primary viewport." },
-          "nodeCount": { "type": "integer", "description": "Elements captured in this region, before the skeleton cap." },
-          "skeleton": { "type": "array", "items": { "type": "object", "additionalProperties": true }, "description": "Depth-limited element tree, capped per region. Boxes are [top, left, width, height] and properties equal to the CSS default are omitted." },
-          "components": { "type": "array", "items": { "type": "object", "additionalProperties": true }, "description": "Repeating structures inside this region — a card rendered in a loop." },
-          "motion": { "type": "array", "items": { "$ref": "#/components/schemas/BlueprintMotion" } },
-          "responsive": { "type": "array", "items": { "type": "object", "additionalProperties": true }, "description": "Per-viewport layout deltas, carrying only the value each property changes *to* — the from side is already in this region's skeleton." }
-        }
-      },
-      "BlueprintMotion": {
-        "type": "object",
-        "description": "One animation, classified. Recovered primarily from `document.getAnimations()`, so it is reported the same way whichever library produced it.",
-        "properties": {
-          "nodeId": { "type": ["string", "null"], "description": "The element this animates, joining it to a node in the region skeleton." },
-          "type": { "type": "string", "description": "The effect, named from what the keyframes do: `fade-up`, `fade-zoom-in`, `slide-right`, `class-toggle` when a class carries the effect, or `unknown`." },
-          "primitives": { "type": "array", "items": { "type": "string", "enum": ["fade", "slide", "scale", "rotate", "blur", "clip-reveal", "color"] }, "description": "The independent changes the effect is composed of." },
-          "detail": { "type": "object", "additionalProperties": true, "description": "Measured magnitudes behind the primitives, e.g. the translate distance and direction." },
-          "tier": { "type": ["string", "null"], "description": "Which recovery tier produced this record. Determines `confidence`." },
-          "source": { "type": ["string", "null"], "description": "What was intercepted or observed, e.g. `gsap`, `hover`, `mutation`." },
-          "confidence": { "type": "string", "enum": ["high", "medium", "low"], "description": "Derived from the tier: exact keyframes are high, a sampled curve is low." },
-          "trigger": {
-            "type": "object",
-            "description": "What starts it. `kind` selects which of the other fields are present.",
-            "properties": {
-              "kind": { "type": "string", "enum": ["load", "scroll-into-view", "scroll-scrub", "hover", "click", "infinite"] },
-              "delayMs": { "type": "integer", "description": "kind=load." },
-              "scrollPx": { "type": "integer", "description": "kind=scroll-into-view: scroll offset at which it fired." },
-              "threshold": { "type": ["number", "null"], "description": "kind=scroll-into-view: where the element sat in the viewport when it fired — the number an IntersectionObserver threshold is built from." },
-              "startPx": { "type": ["integer", "null"], "description": "kind=scroll-scrub." },
-              "endPx": { "type": ["integer", "null"], "description": "kind=scroll-scrub." },
-              "pinned": { "type": "boolean", "description": "kind=scroll-scrub." }
-            }
-          },
-          "timing": {
-            "type": "object",
-            "properties": {
-              "durationMs": { "type": "integer" },
-              "delayMs": { "type": "integer" },
-              "easing": { "type": ["string", "null"] },
-              "easingAlias": { "type": ["string", "null"], "description": "The cubic-bezier resolved back to a name where one matches." },
-              "iterations": { "oneOf": [{ "type": "number" }, { "type": "string", "const": "infinite" }] },
-              "direction": { "type": "string" },
-              "fill": { "type": "string" }
-            },
-            "description": "Fields equal to the CSS default are omitted."
-          },
-          "animationName": { "type": ["string", "null"] },
-          "keyframes": { "type": "array", "items": { "type": "object", "additionalProperties": true }, "description": "Present only when the animation has no named rule in `keyframes.css` — for a WAAPI or inline animation this is the only copy." },
-          "keyframesRef": { "type": "string", "description": "Name of a rule in `stylesheets[\"keyframes.css\"]`, used instead of repeating frames already carried there." },
-          "addedClasses": { "type": "array", "items": { "type": "string" }, "description": "type=class-toggle: the classes added. The effect itself lives in the stylesheet under them." },
-          "selector": { "type": ["string", "null"] },
-          "modifiers": {
-            "type": "object",
-            "properties": {
-              "stagger": {
-                "type": "object",
-                "description": "Present when siblings sharing an effect and duration fire at an evenly spaced delay.",
-                "properties": {
-                  "stepMs": { "type": "integer" },
-                  "count": { "type": "integer" }
-                }
-              }
-            }
-          }
-        }
-      },
-      "BlueprintTech": {
-        "type": "object",
-        "description": "A technology detected from observed evidence — a global, a selector, a request host or a generator tag.",
-        "properties": {
-          "name": { "type": "string" },
-          "category": { "type": "string", "enum": ["cms", "ecommerce", "payments", "analytics", "consent", "testing", "chat", "email", "framework", "hosting"] },
-          "categoryLabel": { "type": "string", "description": "The category rendered for display." },
-          "confidence": { "type": "string", "enum": ["high", "medium"], "description": "High for a JavaScript global or a generator tag, or for two independent kinds of evidence agreeing." },
-          "version": { "type": "string", "description": "Present only when the page exposes one." },
-          "evidence": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "kind": { "type": "string", "enum": ["global", "generator", "selector", "url", "host"] },
-                "value": { "type": "string" }
-              }
-            }
-          }
-        }
-      },
-      "InterpretationError": {
+      "ComponentError": {
         "type": "object",
         "required": ["type", "message", "retryable"],
         "properties": {
-          "type": { "type": "string", "examples": ["llm_grounding_failed"] },
+          "type": { "type": "string" },
           "message": { "type": "string" },
           "retryable": { "type": "boolean" },
           "reason": { "type": "string" },
-          "missingHeadings": { "type": "array", "items": { "type": "string" } },
-          "unknownLiteralCount": { "type": "integer", "minimum": 0 }
+          "unknownLiteralCount": { "type": "integer" },
+          "missingRegionCount": { "type": "integer" }
         }
       },
-      "SnapshotResponse": {
+      "ScreenshotResponse": {
         "type": "object",
-        "required": ["success", "type", "url", "metadata", "renderTime"],
+        "required": ["success", "type", "media"],
         "properties": {
-          "success": { "const": true },
-          "status": { "type": "string", "enum": ["completed", "blueprint_only"], "description": "`blueprint_only` means the capture succeeded and the interpretation did not — see `blueprint.interpretationError`. The blueprint is present and its credits are not refunded." },
-          "type": { "const": "snapshot" },
-          "url": { "$ref": "#/components/schemas/HttpUrl" },
-          "metadata": { "type": "object", "additionalProperties": true },
-          "markdown": { "type": "string" },
-          "html": { "type": "string" },
-          "links": { "type": "array", "items": { "type": "string", "format": "uri" } },
-          "images": { "type": "array", "items": { "type": "string" } },
-          "videos": { "type": "array", "items": { "type": "string" } },
-          "fonts": { "type": "array", "items": { "type": "object", "additionalProperties": true } },
-          "colors": { "type": "array", "items": { "type": "object", "additionalProperties": true } },
-          "structure": { "type": "object", "additionalProperties": true },
-          "design": { "$ref": "#/components/schemas/Design" },
-          "blueprint": { "$ref": "#/components/schemas/Blueprint" },
+          "success": { "type": "boolean", "const": true },
+          "type": { "type": "string", "const": "screenshot" },
+          "url": { "type": "string", "format": "uri" },
+          "media": { "$ref": "#/components/schemas/Media" },
+          "design": { "type": "object", "additionalProperties": true },
+          "regions": { "$ref": "#/components/schemas/Regions" },
+          "styleGuide": { "$ref": "#/components/schemas/StyleGuide" },
           "credits": { "$ref": "#/components/schemas/Credits" },
-          "renderTime": { "type": "integer", "minimum": 0 },
+          "renderTime": { "type": "integer" },
           "startedAt": { "type": "string", "format": "date-time" },
           "completedAt": { "type": "string", "format": "date-time" }
         }
       },
-      "StoredMedia": {
-        "type": "object",
-        "required": ["stored", "url"],
-        "properties": {
-          "stored": { "const": true },
-          "url": { "type": "string", "format": "uri" },
-          "location": { "type": "string" },
-          "contentType": { "type": "string", "enum": ["image/jpeg", "image/png"] }
-        }
+      "ScreenshotPartialResponse": {
+        "allOf": [
+          { "$ref": "#/components/schemas/ScreenshotResponse" },
+          {
+            "type": "object",
+            "required": ["status", "credits"],
+            "properties": {
+              "status": { "type": "string", "const": "partial" },
+              "regions": { "oneOf": [ { "$ref": "#/components/schemas/Regions" }, { "type": "null" } ] },
+              "regionError": { "$ref": "#/components/schemas/ComponentError" },
+              "styleGuide": { "oneOf": [ { "$ref": "#/components/schemas/StyleGuide" }, { "type": "null" } ] },
+              "styleGuideError": { "$ref": "#/components/schemas/ComponentError" }
+            }
+          }
+        ]
       },
-      "ScreenshotStoredResponse": {
+      "AsyncAccepted": {
         "type": "object",
-        "required": ["success", "type", "url", "media", "renderTime"],
+        "required": ["success", "id", "statusUrl"],
         "properties": {
-          "success": { "const": true },
-          "type": { "const": "screenshot" },
-          "url": { "$ref": "#/components/schemas/HttpUrl" },
-          "media": { "$ref": "#/components/schemas/StoredMedia" },
-          "design": { "$ref": "#/components/schemas/Design" },
-          "renderTime": { "type": "integer", "minimum": 0 }
-        }
-      },
-      "JobAccepted": {
-        "type": "object",
-        "required": ["success", "id", "status", "statusUrl"],
-        "properties": {
-          "success": { "const": true },
+          "success": { "type": "boolean", "const": true },
           "id": { "type": "string", "format": "uuid" },
-          "status": { "const": "queued" },
-          "statusUrl": { "type": "string", "examples": ["/status/6a8bc66a-0000-4000-8000-000000000000"] }
+          "type": { "type": "string", "enum": ["screenshot", "diff"] },
+          "statusUrl": { "type": "string" },
+          "message": { "type": "string" },
+          "credits": { "$ref": "#/components/schemas/Credits" }
+        }
+      },
+      "BatchRequest": {
+        "type": "object",
+        "required": ["urls", "screenshot", "store", "storage_path"],
+        "additionalProperties": true,
+        "not": {
+          "anyOf": [
+            { "required": ["regions"] },
+            { "required": ["design"] },
+            { "required": ["styleGuide"] },
+            { "required": ["regenerate"] },
+            { "required": ["cache"] }
+          ]
+        },
+        "properties": {
+          "urls": { "type": "array", "minItems": 1, "maxItems": 100, "items": { "type": "string", "format": "uri", "pattern": "^https?://" } },
+          "screenshot": { "type": "boolean", "const": true },
+          "store": { "type": "boolean", "const": true },
+          "storage_path": { "type": "string", "minLength": 1 },
+          "format": { "type": "string", "enum": ["jpg", "png"], "default": "jpg" },
+          "quality": { "type": "integer", "minimum": 1, "maximum": 100, "default": 80 },
+          "width": { "type": "integer", "minimum": 320, "maximum": 3840 },
+          "height": { "type": "integer", "minimum": 240, "maximum": 2160 },
+          "device": { "type": "string" },
+          "fullPage": { "type": "boolean", "default": false },
+          "theme": { "type": "string", "enum": ["light", "dark"], "default": "light" },
+          "timeout": { "type": "integer", "minimum": 10, "maximum": 60 },
+          "waitUntil": { "type": "string", "enum": ["load", "domcontentloaded", "networkidle0", "networkidle2"] },
+          "hideSelectors": { "type": "array", "items": { "type": "string" } },
+          "clickSelectors": { "type": "array", "items": { "type": "string" } },
+          "scrollToElement": { "type": "string" },
+          "headers": { "type": "object", "additionalProperties": { "type": "string" }, "writeOnly": true },
+          "cookies": { "type": "array", "items": { "$ref": "#/components/schemas/Cookie" }, "writeOnly": true },
+          "webhookUrl": { "type": "string", "format": "uri" },
+          "webhookSecret": { "type": "string", "writeOnly": true },
+          "storage_provider": { "type": "string", "enum": ["b2", "s3", "r2"] },
+          "storage_bucket": { "type": "string" },
+          "storage_endpoint": { "type": "string", "format": "uri", "writeOnly": true },
+          "storage_access_key_id": { "type": "string", "writeOnly": true },
+          "storage_secret_access_key": { "type": "string", "writeOnly": true },
+          "storage_public_domain": { "type": "string", "format": "uri" }
+        }
+      },
+      "BatchItem": {
+        "type": "object",
+        "required": ["index", "success"],
+        "properties": {
+          "index": { "type": "integer" },
+          "success": { "type": "boolean" },
+          "jobId": { "type": "string", "format": "uuid" },
+          "statusUrl": { "type": "string" },
+          "error": { "$ref": "#/components/schemas/Error" },
+          "credits": { "$ref": "#/components/schemas/Credits" }
+        }
+      },
+      "BatchResponse": {
+        "type": "object",
+        "required": ["success", "total", "accepted", "failed", "results"],
+        "properties": {
+          "success": { "type": "boolean" },
+          "total": { "type": "integer" },
+          "accepted": { "type": "integer" },
+          "failed": { "type": "integer" },
+          "results": { "type": "array", "items": { "$ref": "#/components/schemas/BatchItem" } },
+          "credits": { "$ref": "#/components/schemas/Credits" }
+        }
+      },
+      "DiffSide": {
+        "type": "object",
+        "required": ["media"],
+        "properties": {
+          "media": { "type": "object", "required": ["url"], "properties": { "url": { "type": "string", "format": "uri", "pattern": "^https://" }, "contentType": { "type": "string" }, "width": { "type": "integer" }, "height": { "type": "integer" }, "sha256": { "type": "string" } }, "additionalProperties": true },
+          "regions": { "$ref": "#/components/schemas/Regions" }
+        },
+        "additionalProperties": false
+      },
+      "DiffRequest": {
+        "type": "object",
+        "required": ["before", "after"],
+        "properties": {
+          "before": { "$ref": "#/components/schemas/DiffSide" },
+          "after": { "$ref": "#/components/schemas/DiffSide" },
+          "mode": { "type": "string", "enum": ["pixel", "perceptual"], "default": "perceptual" },
+          "visualization": { "type": "string", "enum": ["overlay", "heatmap", "mask", "none"], "default": "overlay" },
+          "async": { "type": "boolean", "default": false },
+          "webhookUrl": { "type": "string", "format": "uri" },
+          "webhookSecret": { "type": "string", "writeOnly": true },
+          "storage_provider": { "type": "string", "enum": ["b2", "s3", "r2"] },
+          "storage_path": { "type": "string", "default": "diffs" }
+        },
+        "additionalProperties": false
+      },
+      "DiffRegion": {
+        "type": "object",
+        "properties": {
+          "status": { "type": "string", "enum": ["unchanged", "changed", "added", "removed"] },
+          "kind": { "type": "string" },
+          "beforeId": { "type": ["string", "null"] },
+          "afterId": { "type": ["string", "null"] },
+          "differenceRatio": { "type": "number" },
+          "similarity": { "type": "number" },
+          "positionChanged": { "type": "boolean" },
+          "sizeChanged": { "type": "boolean" },
+          "bounds": { "$ref": "#/components/schemas/Bounds" }
+        }
+      },
+      "DiffResponse": {
+        "type": "object",
+        "required": ["success", "type", "before", "after", "diff", "credits"],
+        "properties": {
+          "success": { "type": "boolean", "const": true },
+          "type": { "type": "string", "const": "diff" },
+          "before": { "type": "object", "properties": { "width": { "type": "integer" }, "height": { "type": "integer" }, "contentType": { "type": "string" }, "sha256": { "type": "string" } } },
+          "after": { "type": "object", "properties": { "width": { "type": "integer" }, "height": { "type": "integer" }, "contentType": { "type": "string" }, "sha256": { "type": "string" } } },
+          "diff": {
+            "type": "object",
+            "properties": {
+              "version": { "type": "string", "const": "screenshot-diff-v2" },
+              "mode": { "type": "string", "enum": ["pixel", "perceptual"] },
+              "visualization": { "type": "string", "enum": ["overlay", "heatmap", "mask", "none"] },
+              "changed": { "type": "boolean" },
+              "changedPixels": { "type": "integer" },
+              "comparedPixels": { "type": "integer" },
+              "differenceRatio": { "type": "number" },
+              "similarity": { "type": "number" },
+              "comparisonCoverage": { "type": "number" },
+              "changedBounds": { "type": "array", "maxItems": 128, "items": { "allOf": [ { "$ref": "#/components/schemas/Bounds" }, { "type": "object", "properties": { "status": { "type": "string", "enum": ["changed", "added", "removed"] }, "coordinateSpace": { "type": "string", "enum": ["before", "after"] } } } ] } },
+              "boundsTruncated": { "type": "boolean" },
+              "omittedBounds": { "type": "integer" },
+              "regionMatching": { "type": "object", "properties": { "status": { "type": "string", "enum": ["available", "unavailable"] } } },
+              "regions": { "type": "array", "items": { "$ref": "#/components/schemas/DiffRegion" } }
+            }
+          },
+          "media": { "oneOf": [ { "$ref": "#/components/schemas/Media" }, { "type": "null" } ] },
+          "credits": { "$ref": "#/components/schemas/Credits" }
         }
       },
       "JobStatus": {
@@ -1064,150 +825,164 @@
         "required": ["id", "status", "progress"],
         "properties": {
           "id": { "type": "string", "format": "uuid" },
-          "status": { "type": "string", "enum": ["queued", "in_progress", "completed", "failed", "not_found"] },
+          "status": { "type": "string", "enum": ["queued", "in_progress", "completed", "failed"] },
           "progress": { "type": "integer", "minimum": 0, "maximum": 100 },
-          "result": { "type": "object", "additionalProperties": true, "description": "Completed result; `truncated` names omitted large fields." },
-          "error": { "type": "string" },
-          "attempts": { "type": "integer", "minimum": 0 }
-        }
-      },
-      "BatchItem": {
-        "type": "object",
-        "properties": {
-          "url": { "type": "string" },
-          "success": { "type": "boolean" },
-          "id": { "type": "string", "format": "uuid" },
-          "statusUrl": { "type": "string" },
-          "batch": { "type": "string", "description": "Domain grouping on smart batches." },
-          "error": { "type": "string" }
-        },
-        "required": ["url", "success"]
-      },
-      "BatchResponse": {
-        "type": "object",
-        "required": ["success", "results"],
-        "properties": {
-          "success": { "type": "boolean" },
-          "results": { "type": "array", "items": { "$ref": "#/components/schemas/BatchItem" } },
-          "credits": { "$ref": "#/components/schemas/Credits" }
-        }
-      },
-      "RetrySummary": {
-        "type": "object",
-        "properties": {
-          "success": { "const": true },
-          "retried": { "type": "integer", "minimum": 0 },
-          "skipped": { "type": "integer", "minimum": 0 },
-          "jobs": { "type": "array", "items": { "$ref": "#/components/schemas/JobAccepted" } }
-        }
-      },
-      "CrawlAccepted": {
-        "type": "object",
-        "required": ["success", "id", "statusUrl", "pagesUrl", "resultsUrl"],
-        "properties": {
-          "success": { "const": true },
-          "id": { "type": "string", "format": "uuid" },
-          "statusUrl": { "type": "string" },
-          "pagesUrl": { "type": "string" },
-          "resultsUrl": { "type": "string" }
-        }
-      },
-      "Crawl": {
-        "type": "object",
-        "required": ["id", "status"],
-        "properties": {
-          "id": { "type": "string", "format": "uuid" },
-          "status": { "type": "string", "enum": ["running", "completed", "cancelled", "failed", "out_of_credits"] },
-          "seedUrl": { "$ref": "#/components/schemas/HttpUrl" },
-          "pagesDiscovered": { "type": "integer", "minimum": 0 },
-          "pagesCompleted": { "type": "integer", "minimum": 0 },
-          "pagesFailed": { "type": "integer", "minimum": 0 },
-          "creditsSpent": { "type": "integer", "minimum": 0 },
-          "stopReason": { "type": ["string", "null"] },
+          "result": { "oneOf": [ { "$ref": "#/components/schemas/ScreenshotResponse" }, { "$ref": "#/components/schemas/ScreenshotPartialResponse" }, { "$ref": "#/components/schemas/DiffResponse" } ] },
+          "error": { "$ref": "#/components/schemas/Error" },
           "createdAt": { "type": "string", "format": "date-time" },
+          "startedAt": { "type": ["string", "null"], "format": "date-time" },
           "completedAt": { "type": ["string", "null"], "format": "date-time" }
         }
       },
-      "CrawlList": {
+      "UsageResponse": {
         "type": "object",
-        "required": ["success", "crawls"],
+        "required": ["success", "credits"],
         "properties": {
-          "success": { "const": true },
-          "crawls": { "type": "array", "items": { "$ref": "#/components/schemas/Crawl" } },
-          "nextCursor": { "type": ["string", "null"] }
+          "success": { "type": "boolean", "const": true },
+          "credits": { "type": "object", "properties": { "used": { "type": "integer" }, "total": { "type": "integer" }, "remaining": { "type": "integer" }, "percentageUsed": { "type": "number" } }, "required": ["used", "total", "remaining", "percentageUsed"] },
+          "plan": { "type": "string" },
+          "periodEnd": { "type": ["string", "null"], "format": "date-time" }
         }
       },
-      "CrawlPage": {
+      "MonitorCapture": {
         "type": "object",
-        "required": ["id", "url", "status", "depth"],
         "properties": {
-          "id": { "type": "string" },
-          "url": { "$ref": "#/components/schemas/HttpUrl" },
-          "status": { "type": "string", "enum": ["queued", "in_progress", "completed", "failed", "skipped"] },
-          "depth": { "type": "integer", "minimum": 0 },
-          "parentUrl": { "type": ["string", "null"], "format": "uri" },
-          "resultUrl": { "type": ["string", "null"], "format": "uri" },
-          "error": { "type": ["string", "null"] }
+          "fullPage": { "type": "boolean", "default": true },
+          "regions": { "type": "boolean", "default": false },
+          "format": { "type": "string", "enum": ["jpg", "png"], "default": "jpg" },
+          "quality": { "type": "integer", "minimum": 1, "maximum": 100, "default": 80 },
+          "device": { "type": "string" },
+          "width": { "type": "integer" },
+          "height": { "type": "integer" },
+          "theme": { "type": "string", "enum": ["light", "dark"] },
+          "timeout": { "type": "integer", "minimum": 10, "maximum": 60 },
+          "waitUntil": { "type": "string", "enum": ["load", "domcontentloaded", "networkidle0", "networkidle2"] },
+          "hideSelectors": { "type": "array", "items": { "type": "string" } },
+          "clickSelectors": { "type": "array", "items": { "type": "string" }, "writeOnly": true },
+          "headers": { "type": "object", "additionalProperties": { "type": "string" }, "writeOnly": true },
+          "cookies": { "type": "array", "items": { "$ref": "#/components/schemas/Cookie" }, "writeOnly": true },
+          "storage_provider": { "type": "string", "enum": ["b2", "s3", "r2"] },
+          "storage_path": { "type": "string" }
+        },
+        "additionalProperties": true
+      },
+      "MonitorDiff": {
+        "type": "object",
+        "properties": {
+          "mode": { "type": "string", "enum": ["pixel", "perceptual"], "default": "perceptual" },
+          "visualization": { "type": "string", "enum": ["overlay", "heatmap", "mask", "none"], "default": "overlay" }
+        },
+        "additionalProperties": false
+      },
+      "MonitorAlerts": {
+        "type": "object",
+        "properties": {
+          "email": { "type": "object", "properties": { "account": { "type": "boolean", "default": true }, "recipientIds": { "type": "array", "maxItems": 5, "items": { "type": "string", "format": "uuid" } } } },
+          "webhook": { "type": "object", "properties": { "url": { "type": "string", "format": "uri", "writeOnly": true }, "secret": { "type": ["string", "null"], "writeOnly": true } } }
         }
       },
-      "CrawlPages": {
+      "MonitorWrite": {
         "type": "object",
-        "required": ["success", "pages"],
+        "required": ["name", "url", "intervalMinutes"],
         "properties": {
-          "success": { "const": true },
-          "pages": { "type": "array", "items": { "$ref": "#/components/schemas/CrawlPage" } },
-          "nextCursor": { "type": ["string", "null"] }
-        }
+          "name": { "type": "string", "minLength": 1, "maxLength": 100 },
+          "url": { "type": "string", "format": "uri", "pattern": "^https?://", "writeOnly": true },
+          "intervalMinutes": { "type": "integer", "minimum": 1, "maximum": 43200 },
+          "baselineMode": { "type": "string", "enum": ["rolling", "fixed"], "default": "rolling" },
+          "changeThreshold": { "type": "number", "minimum": 0, "maximum": 1, "default": 0.01 },
+          "capture": { "$ref": "#/components/schemas/MonitorCapture" },
+          "diff": { "$ref": "#/components/schemas/MonitorDiff" },
+          "alerts": { "$ref": "#/components/schemas/MonitorAlerts" }
+        },
+        "additionalProperties": false
       },
-      "CrawlResults": {
+      "MonitorPatch": {
         "type": "object",
-        "required": ["success", "results"],
+        "minProperties": 1,
         "properties": {
-          "success": { "const": true },
-          "results": { "type": "array", "items": { "$ref": "#/components/schemas/CrawlPage" } },
-          "nextCursor": { "type": ["string", "null"] }
-        }
+          "name": { "type": "string", "minLength": 1, "maxLength": 100 },
+          "url": { "type": "string", "format": "uri", "pattern": "^https?://", "writeOnly": true },
+          "intervalMinutes": { "type": "integer", "minimum": 1, "maximum": 43200 },
+          "baselineMode": { "type": "string", "enum": ["rolling", "fixed"] },
+          "changeThreshold": { "type": "number", "minimum": 0, "maximum": 1 },
+          "capture": { "$ref": "#/components/schemas/MonitorCapture" },
+          "diff": { "$ref": "#/components/schemas/MonitorDiff" },
+          "alerts": { "$ref": "#/components/schemas/MonitorAlerts" },
+          "status": { "type": "string", "enum": ["active", "paused"] }
+        },
+        "additionalProperties": false
       },
-      "Schedule": {
+      "Monitor": {
         "type": "object",
-        "required": ["id", "type", "status"],
+        "required": ["id", "name", "status", "intervalMinutes", "baselineMode", "changeThreshold", "capture", "diff", "createdAt"],
         "properties": {
-          "id": { "type": "string" },
-          "type": { "type": "string", "enum": ["delayed", "repeatable"] },
-          "status": { "type": "string", "enum": ["active", "completed", "cancelled"] },
-          "url": { "$ref": "#/components/schemas/HttpUrl" },
-          "scheduleAt": { "type": "string", "format": "date-time" },
-          "pattern": { "type": "string" },
+          "id": { "type": "string", "format": "uuid" },
+          "name": { "type": "string" },
+          "status": { "type": "string", "enum": ["active", "paused", "paused_plan_limit", "deleted"] },
+          "intervalMinutes": { "type": "integer" },
+          "baselineMode": { "type": "string", "enum": ["rolling", "fixed"] },
+          "changeThreshold": { "type": "number" },
+          "capture": { "type": "object", "additionalProperties": true },
+          "diff": { "$ref": "#/components/schemas/MonitorDiff" },
+          "alerts": { "type": "object", "additionalProperties": true },
+          "baselineRunId": { "type": ["string", "null"], "format": "uuid" },
           "nextRunAt": { "type": ["string", "null"], "format": "date-time" },
-          "runCount": { "type": "integer", "minimum": 0 },
-          "limit": { "type": ["integer", "null"], "minimum": 1 }
+          "lastRunAt": { "type": ["string", "null"], "format": "date-time" },
+          "incident": { "type": ["object", "null"], "additionalProperties": true },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" }
         }
       },
-      "ScheduleList": {
+      "MonitorResponse": { "type": "object", "required": ["success", "monitor"], "properties": { "success": { "type": "boolean", "const": true }, "monitor": { "$ref": "#/components/schemas/Monitor" } } },
+      "MonitorList": { "type": "object", "required": ["success", "monitors"], "properties": { "success": { "type": "boolean", "const": true }, "monitors": { "type": "array", "items": { "$ref": "#/components/schemas/Monitor" } }, "nextCursor": { "type": ["string", "null"] }, "total": { "type": "integer" } } },
+      "MonitorRun": {
         "type": "object",
-        "required": ["success", "schedules"],
+        "required": ["id", "monitorId", "status", "trigger", "credits", "createdAt", "expiresAt"],
         "properties": {
-          "success": { "const": true },
-          "schedules": { "type": "array", "items": { "$ref": "#/components/schemas/Schedule" } },
-          "total": { "type": "integer", "minimum": 0 }
+          "id": { "type": "string", "format": "uuid" },
+          "monitorId": { "type": "string", "format": "uuid" },
+          "status": { "type": "string", "enum": ["queued", "capturing", "baseline", "diffing", "completed", "partial", "failed", "skipped_no_credits"] },
+          "trigger": { "type": "string", "enum": ["initial", "scheduled", "manual"] },
+          "comparedToRunId": { "type": ["string", "null"], "format": "uuid" },
+          "differenceRatio": { "type": ["number", "null"] },
+          "regionCount": { "type": "integer" },
+          "credits": { "$ref": "#/components/schemas/Credits" },
+          "result": { "type": ["object", "null"], "additionalProperties": true },
+          "error": { "oneOf": [ { "$ref": "#/components/schemas/Error" }, { "type": "null" } ] },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "startedAt": { "type": ["string", "null"], "format": "date-time" },
+          "completedAt": { "type": ["string", "null"], "format": "date-time" },
+          "expiresAt": { "type": "string", "format": "date-time" }
         }
       },
-      "Usage": {
+      "MonitorRunResponse": { "type": "object", "required": ["success", "run"], "properties": { "success": { "type": "boolean", "const": true }, "run": { "$ref": "#/components/schemas/MonitorRun" } } },
+      "MonitorRunList": { "type": "object", "required": ["success", "runs"], "properties": { "success": { "type": "boolean", "const": true }, "runs": { "type": "array", "items": { "$ref": "#/components/schemas/MonitorRun" } }, "nextCursor": { "type": ["string", "null"] } } },
+      "Recipient": {
         "type": "object",
-        "required": ["success"],
+        "required": ["id", "status", "createdAt"],
         "properties": {
-          "success": { "const": true },
-          "account": { "type": "object", "additionalProperties": true },
-          "credits": {
-            "type": "object",
-            "properties": {
-              "used": { "type": "integer", "minimum": 0 },
-              "limit": { "type": "integer", "minimum": 0 },
-              "remaining": { "type": "integer", "minimum": 0 },
-              "periodStart": { "type": "string", "format": "date-time" },
-              "periodEnd": { "type": "string", "format": "date-time" }
-            }
-          }
+          "id": { "type": "string", "format": "uuid" },
+          "emailMasked": { "type": "string", "description": "Safe masked address; plaintext addresses are encrypted at rest." },
+          "status": { "type": "string", "enum": ["pending", "verified"] },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "verifiedAt": { "type": ["string", "null"], "format": "date-time" }
+        }
+      },
+      "RecipientResponse": { "type": "object", "required": ["success", "recipient"], "properties": { "success": { "type": "boolean", "const": true }, "recipient": { "$ref": "#/components/schemas/Recipient" } } },
+      "RecipientList": { "type": "object", "required": ["success", "recipients"], "properties": { "success": { "type": "boolean", "const": true }, "recipients": { "type": "array", "items": { "$ref": "#/components/schemas/Recipient" } }, "nextCursor": { "type": ["string", "null"] } } },
+      "DeleteResponse": { "type": "object", "required": ["success"], "properties": { "success": { "type": "boolean", "const": true } } },
+      "ErrorField": { "type": "object", "required": ["field", "message"], "properties": { "field": { "type": "string" }, "message": { "type": "string" } } },
+      "Error": {
+        "type": "object",
+        "required": ["success", "error"],
+        "properties": {
+          "success": { "type": "boolean", "const": false },
+          "error": { "type": "string" },
+          "type": { "type": "string" },
+          "code": { "type": "string" },
+          "retryable": { "type": "boolean" },
+          "fields": { "type": "array", "items": { "$ref": "#/components/schemas/ErrorField" } },
+          "credits": { "$ref": "#/components/schemas/Credits" }
         }
       }
     }

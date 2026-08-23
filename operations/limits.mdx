@@ -1,32 +1,27 @@
 ---
 title: "Platform limits"
-description: "Current render, crawl, batch, result, and interpretation limits."
+description: "Current request, screenshot, diff, monitor, and result ceilings."
 ---
 
-| Limit | Value |
-| --- | ---: |
-| Browser concurrency | 120 per account by default |
-| Per-host politeness | 1 second, 2 concurrent by default |
-| URLs per batch | 100 |
-| Crawl pages | 5,000 |
-| Crawl depth | 10 |
-| Crawl concurrency | 10 pages |
-| Crawl duration | 6 hours |
-| Screenshot resolution | 3,840 × 2,160 |
-| Render timeout | 60 seconds |
-| Stored job result | approximately 1.5 MB |
-| Ordinary cache entry | 24 MB |
-| Inline design JSON | 2 MiB |
-| AI projection | 16 KiB |
-| AI provider response body | 512 KiB |
-| AI provider deadline | 30 seconds |
-| Design stylesheets | 60 sheets, 40,000 rules, 2 MB total |
+| Area | Limit |
+| --- | --- |
+| Screenshot viewport | 3840 × 2160 CSS pixels |
+| Screenshot timeout | 10–60 seconds |
+| Region crop height | 1,600 bitmap pixels |
+| Region crop assets | 32 |
+| Screenshot batch | 100 URLs |
+| Diff JSON request | 2 MiB |
+| Diff source body | 20 MiB each |
+| Diff source pixels | 24 MP each; 40 MP combined |
+| Diff source height | 32,768 pixels |
+| Diff redirects | 3 safe redirects |
+| Changed bounds | 128 after consolidation |
+| Custom monitor recipients | 10 per account; 5 selected per monitor |
+| Style Guide output | 6,144 tokens; 512 KiB provider response |
+| Style Guide model deadline | 60 seconds |
 
-Limits are validation ceilings, not performance targets. Full-page screenshots, script-heavy sites, large DOMs, and stylesheet-heavy design extraction can take longer than simple snapshots.
+Full-page preparation is capped to prevent infinite feeds from consuming a browser indefinitely. Scrinly returns `full_page_unbounded` when the document keeps growing and `full_page_incomplete` when capture dimensions remain shorter than the settled document after the retry.
 
-## Pagination and truncation
+Completed async metadata is bounded. If optional fields must be removed, the status result reports their names in `truncated`; stored direct media URLs remain available.
 
-Crawl pages use a cursor. Send the returned cursor unchanged on the next request rather than constructing offsets.
-
-Async job results must fit in D1. When a result exceeds about 1.5 MB, Scrinly removes large optional fields in a deterministic order and records their names in `result.truncated`. Prefer object storage when you need complete large artifacts.
-
+Monitor count, minimum cadence, and run retention depend on plan. See [Monitoring](/guides/monitoring#plans-and-retention).

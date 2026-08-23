@@ -1,46 +1,92 @@
 ---
 title: "Screenshots"
-description: "Capture JPEG or PNG screenshots with browser controls."
+description: "Capture faithful JPEG or PNG evidence with browser controls."
 ---
 
-Use `GET` or `POST /render/screenshot`. By default Scrinly returns JPEG bytes directly.
+Use `GET` or `POST /render/screenshot`. Requests cost one credit before optional add-ons.
 
-```bash
+## Binary responses
+
+Without storage, synchronous requests return raw `image/jpeg` or `image/png` bytes.
+
+<CodeGroup>
+```bash cURL
 curl --get "https://api.scrinly.com/render/screenshot" \
   --header "Authorization: Bearer $SCRINLY_API_KEY" \
   --data-urlencode "url=https://example.com" \
-  --data-urlencode "format=png" \
   --data-urlencode "fullPage=true" \
-  --output example.png
+  --data-urlencode "format=jpg" \
+  --output page.jpg
 ```
+
+```javascript JavaScript
+const response = await fetch("https://api.scrinly.com/render/screenshot", {
+  method: "POST",
+  headers: {
+    Authorization: `Bearer ${process.env.SCRINLY_API_KEY}`,
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({ url: "https://example.com", fullPage: true }),
+});
+const bytes = await response.arrayBuffer();
+```
+
+```python Python
+import os, requests
+
+response = requests.post(
+    "https://api.scrinly.com/render/screenshot",
+    headers={"Authorization": f"Bearer {os.environ['SCRINLY_API_KEY']}"},
+    json={"url": "https://example.com", "fullPage": True},
+)
+response.raise_for_status()
+open("page.jpg", "wb").write(response.content)
+```
+</CodeGroup>
+
+## Stored JSON responses
+
+Set `store:true` and a `storage_path` to receive metadata and a direct provider URL instead of binary bytes. Async, regions, and Visual Style Guide requests imply storage.
+
+```json
+{
+  "success": true,
+  "type": "screenshot",
+  "media": {
+    "stored": true,
+    "key": "screenshots/2f7a...jpg",
+    "url": "https://storage.example.com/screenshots/2f7a...jpg",
+    "contentType": "image/jpeg",
+    "width": 1280,
+    "height": 720,
+    "sha256": "2f7a..."
+  }
+}
+```
+
+The response header `X-Scrinly-Storage-URL` points to the same complete screenshot. Generated keys are content-addressed, so changed captures of the same target and prefix cannot overwrite earlier evidence.
 
 ## Capture controls
 
 | Option | Default | Notes |
 | --- | --- | --- |
 | `format` | `jpg` | `jpg` or `png` |
-| `quality` | `80` | JPEG only, from 1 to 100 |
-| `width`, `height` | `1920 × 1080` | Maximum `3840 × 2160` |
-| `device` | — | Device preset; overrides width and height |
-| `fullPage` | `false` | Capture the complete scroll height |
-| `theme` | `light` | Emulates `prefers-color-scheme` |
-| `hideSelectors` | — | Hide matching elements before capture |
-| `clickSelectors` | — | Click selectors in order before capture |
-| `scrollToElement` | — | Scroll one matching element into view |
+| `quality` | `80` | JPEG only, 1–100 |
+| `width`, `height` | `1280 × 720` | Custom viewport, maximum 3840 × 2160 |
+| `device` | — | Preset that overrides width and height |
+| `fullPage` | `false` | Bounded progressive scrolling and verified complete bitmap |
+| `theme` | `light` | `light` or `dark` color-scheme emulation |
+| `timeout` | `30` | 10–60 seconds |
+| `waitUntil` | `networkidle2` | `load`, `domcontentloaded`, `networkidle0`, or `networkidle2` |
+| `hideSelectors` | — | Hide matching elements |
+| `clickSelectors` | — | Click selectors in order |
+| `scrollToElement` | — | Bring one element into view |
+| `headers`, `cookies` | — | Authorized-page credentials; POST recommended |
 
-Ads, cookie banners, chat widgets, popups, and accessibility overlays are blocked by default. Each blocker can be disabled independently.
+Cleanup controls include `blockCookieBanners`, `blockAds`, `blockChatWidgets`, `blockPopups`, and `blockAccessibilityWidgets`. Set them deliberately when the authored page should remain untouched.
 
-## Store instead of returning bytes
+Full-page preparation progressively scrolls through finite content, waits for lazy images and fonts, returns to the top, and verifies the encoded image dimensions. An unbounded page or incomplete bitmap fails with a typed `capture_error` and refunds the screenshot credit rather than returning a silent crop.
 
-Set `store=true` and supply `storage_path`. The response becomes JSON describing the stored asset. Async screenshots always store their output.
+## Raw design evidence
 
-```json
-{
-  "url": "https://example.com",
-  "format": "jpg",
-  "store": true,
-  "storage_path": "captures/homepages"
-}
-```
-
-Screenshot requests can also include `design=true` to capture the image and extract design evidence in the same browser session.
+`design:true` adds an advanced raw evidence object from the same page session. It describes observed palette, typography, spacing, motion, breakpoints, tokens, and library signals. It is optional evidence for customers that need the raw data; the [Visual Style Guide](/guides/visual-style-guide) enables its own private bounded projection automatically.

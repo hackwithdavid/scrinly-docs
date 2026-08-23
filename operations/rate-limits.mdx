@@ -1,21 +1,12 @@
 ---
 title: "Host rate limits"
-description: "Design reliable clients around host politeness, queueing, and retry behavior."
+description: "Understand host-aware concurrency and safe retry behavior."
 ---
 
-Scrinly limits traffic per destination host as well as by browser capacity. By default, a host receives no more than two concurrent requests with at least one second between starts. Crawls and individual renders targeting the same host share this budget.
+Browser work is limited by normalized target host so one origin cannot consume all browser capacity. The limiter applies to synchronous requests, queue consumers, batches, and monitor captures.
 
-This protects origin servers and makes throughput intentionally different for 100 URLs on one host versus 100 URLs across many hosts. `/render/smart-batch` groups work by domain so the queue can schedule mixed-host workloads efficiently.
+A saturated host returns `429` with `Retry-After`. Successful requests that waited may include `X-Scrinly-RateLimit-Bucket` and `X-Scrinly-RateLimit-Waited`; the bucket is a safe normalized identifier, not a copy of the submitted URL.
 
-## Client retries
+Spread unrelated work across the queue and use exponential backoff with jitter. Retrying immediately at high concurrency increases contention and can extend the delay. Status polling is read-only and does not consume a browser slot.
 
-For `429` and transient `5xx` responses:
-
-1. Honor `Retry-After` when present.
-2. Use exponential backoff with random jitter.
-3. Cap attempts and total elapsed time.
-4. Avoid retrying validation, authentication, or ownership failures.
-5. Keep concurrency below the level that produced throttling.
-
-Do not create a duplicate async job merely because status polling was delayed. Continue polling the original ID unless its submission definitively failed.
-
+Provider rate limits for Visual Style Guide generation are normalized into typed `style_guide_*` errors. Scrinly does not silently fall back to another provider or model.

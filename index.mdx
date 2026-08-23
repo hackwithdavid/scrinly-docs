@@ -1,41 +1,31 @@
 ---
-title: "Scrinly Browser API"
-description: "Turn live webpages into screenshots, structured data, crawls, and grounded design specifications."
+title: "The Screenshot API"
+description: "Screenshot API for AI agents and automation."
 ---
 
-Scrinly gives developers a programmable browser without running Chromium infrastructure. Send a URL to the API and receive a screenshot, page content, design-system evidence, or a site-wide crawl.
+Scrinly captures pixel-accurate webpages and turns them into durable visual evidence. Start with a JPEG or PNG, add deterministic regions when a model needs smaller inputs, generate a screenshot-grounded Visual Style Guide, compare captures, or monitor a page over time.
 
 <CardGroup cols={2}>
-  <Card title="Extract a page" icon="file-code" href="/guides/snapshots">
-    Return metadata, Markdown, HTML, links, media, typography, colors, and structure.
-  </Card>
   <Card title="Capture a screenshot" icon="camera" href="/guides/screenshots">
-    Render JPEG or PNG images with device, viewport, theme, and blocking controls.
+    Return image bytes or a direct B2, S3, or R2 URL.
   </Card>
-  <Card title="Discover a design system" icon="palette" href="/guides/design-extraction">
-    Extract authored tokens, fonts, breakpoints, motion, and library signals.
+  <Card title="Split it into regions" icon="grid-2" href="/guides/regions">
+    Get ordered crops, bitmap bounds, hashes, and coverage.
   </Card>
-  <Card title="Crawl a site" icon="spider" href="/guides/crawling">
-    Walk a site politely and persist page-level content with bounded concurrency.
+  <Card title="Compare two captures" icon="code-compare" href="/guides/visual-diffs">
+    Produce perceptual or pixel changes with optional visualization.
+  </Card>
+  <Card title="Monitor a page" icon="radar" href="/guides/monitoring">
+    Run fresh captures against rolling or fixed baselines.
   </Card>
 </CardGroup>
 
-## Three primitives
+## Public API surface
 
-- **Snapshot** returns structured information from one page.
-- **Screenshot** returns or stores a rendered image.
-- **Crawl** discovers and snapshots pages starting from a seed URL.
+The public API is intentionally focused: screenshots, screenshot batches, visual diffs, monitors, asynchronous status, and usage. Structured page extraction, site-wide traversal, generic scheduling, and recovery tooling are internal capabilities and are not customer APIs.
 
-AI design specifications extend snapshots with a grounded Markdown design-system document. They are synchronous, cache-aware, and support Scrinly-funded DeepSeek or OpenAI credentials as well as ephemeral bring-your-own-key requests.
-
-## Base URL
-
-```text
-https://api.scrinly.com
-```
-
-All customer endpoints require a Scrinly API key. Create and manage keys in the [Scrinly dashboard](https://app.scrinly.com), then follow the [five-minute quickstart](/getting-started/quickstart).
+Every customer route uses a Scrinly bearer key. Images stored by Scrinly or in your own provider are returned through direct provider URLs; Scrinly does not proxy those assets.
 
 <Note>
-  This site documents the public customer API. Account provisioning, deployment, health, cache administration, and platform rate-limit inspection are internal Scrinly operations.
+  Capture only publicly accessible pages or pages you are authorized to access. Headers, cookies, interactions, and customer-storage credentials belong in HTTPS headers or JSON bodies, never in URLs or client-side code.
 </Note>

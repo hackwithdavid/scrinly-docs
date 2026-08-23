@@ -1,27 +1,50 @@
 ---
-title: "Batches"
-description: "Submit up to 100 asynchronous renders in one request."
+title: "Screenshot batches"
+description: "Queue up to 100 stored screenshot jobs with partial acceptance."
 ---
 
-Batch routes reduce request overhead when every URL uses the same render options. Each valid URL becomes an independent async job.
+Public `POST /render/batch` accepts only stored screenshot jobs. It requires `screenshot:true`, `store:true`, and a non-empty `storage_path`.
 
-```bash
-curl --request POST 'https://api.scrinly.com/render/batch' \
-  --header 'Authorization: Bearer sk_live_your_key' \
-  --header 'Content-Type: application/json' \
-  --data '{
-    "urls":["https://example.com","https://example.org"],
-    "screenshot":true,
-    "store":true,
-    "storage_path":"batch-shots"
-  }'
+<CodeGroup>
+```bash cURL
+curl --request POST "https://api.scrinly.com/render/batch" \
+  --header "Authorization: Bearer $SCRINLY_API_KEY" \
+  --header "Content-Type: application/json" \
+  --data '{"urls":["https://example.com","https://example.org"],"screenshot":true,"store":true,"storage_path":"batch"}'
 ```
 
-Use `/render/smart-batch` when the input contains several domains. It groups work by domain and adds a domain batch tag, which improves host-aware scheduling without changing the individual job contract.
+```javascript JavaScript
+const response = await fetch("https://api.scrinly.com/render/batch", {
+  method: "POST",
+  headers: {
+    Authorization: `Bearer ${process.env.SCRINLY_API_KEY}`,
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    urls: ["https://example.com", "https://example.org"],
+    screenshot: true,
+    store: true,
+    storage_path: "batch",
+  }),
+});
+```
 
-## Partial acceptance
+```python Python
+import os, requests
 
-A batch can return HTTP `207 Multi-Status`. Inspect every item rather than treating the entire request as one success or failure. Valid URLs are queued, invalid URLs include a typed error, and credits reserved for rejected items are refunded.
+response = requests.post(
+    "https://api.scrinly.com/render/batch",
+    headers={"Authorization": f"Bearer {os.environ['SCRINLY_API_KEY']}"},
+    json={
+        "urls": ["https://example.com", "https://example.org"],
+        "screenshot": True,
+        "store": True,
+        "storage_path": "batch",
+    },
+)
+```
+</CodeGroup>
 
-Both routes accept at most 100 URLs. One credit is reserved per URL for the base async render; additional extraction options can affect the final cost. Poll each returned job through `/status/{jobId}` or supply a webhook.
+Each accepted URL becomes an independent async job billed at one credit. Screenshot viewport, cleanup, interaction, webhook, and public customer-storage options are supported. Structured extraction, regions, Visual Style Guide, and other add-ons are rejected because the batch reserves exactly one credit per item.
 
+The route may return `207 Multi-Status`: valid items are queued, invalid items carry their own typed error, and rejected-item reservations are refunded. Poll each accepted job with `GET /status/{jobId}`. The limit is 100 URLs.

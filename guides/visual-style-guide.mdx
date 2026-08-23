@@ -1,0 +1,47 @@
+---
+title: "Visual Style Guide"
+description: "Generate screenshot-grounded visual observations with GPT-5.6 Luna."
+---
+
+`styleGuide` adds a global Markdown style guide and one structured `spec` to every logical region. It automatically enables full-page capture, storage, regions, and a private deterministic design projection.
+
+```json
+{
+  "url": "https://example.com",
+  "styleGuide": true
+}
+```
+
+To bypass only the seven-day Style Guide cache:
+
+```json
+{
+  "url": "https://example.com",
+  "cache": true,
+  "styleGuide": { "regenerate": true }
+}
+```
+
+`cache` controls the independent one-hour screenshot cache. To force both a fresh capture and new AI output, use `cache:false` with `styleGuide.regenerate:true`.
+
+## Result and grounding
+
+The screenshot-level `styleGuide` includes `version:"style-guide-v1"`, summary, fixed-heading Markdown, parsed sections, prompt/schema/projection versions, grounding, coverage, source screenshot and crop hashes, provider metadata, token usage, and cache status. Region `spec` objects contain concise observed or inferred claims and the exact evidence-part IDs that support them.
+
+Required Markdown headings are Executive summary, Visual foundation, Color, Typography, Spacing and layout, Components and states, Motion, Responsive behavior, and Evidence gaps.
+
+Every color, dimension, duration, easing, breakpoint, and token literal is checked against the deterministic projection. No unknown literals is `clean`; one to five is `flagged`; more than five, missing headings, missing regions, invalid evidence IDs, malformed output, or truncation fails the add-on.
+
+## Visual input and privacy
+
+Scrinly sends the server-controlled OpenAI GPT-5.6 Luna model one bounded overview, every returned region part, a URL-free region manifest, and a deterministic privacy-reduced projection. Image derivatives remain in memory and are not stored or returned.
+
+The textual input excludes the target URL, hostname, page text, headers, cookies, selectors, HTML, DOM data, credentials, storage URLs, screenshot URLs, and raw font URLs. Visible text can naturally appear inside screenshot pixels, so the model is instructed not to reproduce page copy, personal information, credentials, or inferred site identity.
+
+OpenAI Responses is called with `store:false`, reasoning effort `none`, strict structured output, a stable pseudonymous safety identifier, a 6,144-token output limit, a 60-second timeout, and no automatic retry. OpenAI states that API input is not used for training by default unless the customer opts in; default abuse-monitoring logs may be retained for up to 30 days, while project controls and data residency depend on the OpenAI project configuration. See [GPT-5.6 Luna](https://developers.openai.com/api/docs/models/gpt-5.6-luna) and [OpenAI data controls](https://developers.openai.com/api/docs/guides/your-data).
+
+## BYOK and partial results
+
+Provide an ephemeral key only in `X-Scrinly-Provider-API-Key`. BYOK requests are synchronous, use the same server-controlled model and endpoint, and cost one AI credit. Platform and BYOK cache entries are separated by credential mode and a non-reversible keyed fingerprint.
+
+If AI generation fails after capture, the response remains HTTP `200` with `status:"partial"`, the screenshot and regions, `styleGuide:null`, and a typed `styleGuideError`. Only the AI increment is refunded. Successful platform generation is +3 credits, a platform cache hit is +1, and BYOK generation or cache hit is +1.

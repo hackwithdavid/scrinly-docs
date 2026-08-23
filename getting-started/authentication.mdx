@@ -1,60 +1,30 @@
 ---
 title: "Authentication"
-description: "Authenticate Scrinly requests and handle API keys safely."
+description: "Authenticate server-to-server requests without leaking credentials."
 ---
 
-Send your Scrinly API key as a bearer token on every customer API request.
+Send your Scrinly API key in the bearer header on every request:
 
 ```http
-Authorization: Bearer sk_live_your_key
+Authorization: Bearer $SCRINLY_API_KEY
 ```
 
-Keys are account-scoped. Jobs, crawls, and schedules can only be read or changed by the account that created them. A resource owned by another account returns `404` so identifiers cannot be probed.
-
-## Getting a key
-
-Enter your email at the [Scrinly dashboard](https://app.scrinly.com). We send a sign-in link that works once and expires in 15 minutes — there is no password. A new address gets an account on the free plan and its first key straight away.
-
-## Managing keys
-
-The dashboard lists every live key by prefix, label, and last-used date, and you can hold up to **five at a time**. A key's secret is shown exactly once at creation and stored only as a hash, so a lost key is revoked and replaced rather than recovered.
-
-Revoking takes effect immediately: the next request using that key returns `401`. Keys are scoped to your account — a key id belonging to another account cannot be revoked and returns `404`.
-
-## Key safety
-
-- Keep keys on your server. Do not embed them in browser JavaScript or mobile applications.
-- Never commit keys to source control or include them in logs.
-- Rotate a key immediately if it is exposed.
-- Use separate keys for local development, CI, and production.
-
-## Legacy query authentication
-
-GET endpoints accept `api_key` as a compatibility fallback for browser contexts where a header cannot be supplied.
-
-```text
-https://api.scrinly.com/render/screenshot?url=https%3A%2F%2Fexample.com&api_key=sk_live_...
-```
+Keys are account-scoped. Status jobs, monitors, runs, baselines, and recipients owned by another account return `404`, while a missing, invalid, or revoked key returns `401`.
 
 <Warning>
-  Query-string credentials can appear in browser history, proxy logs, monitoring tools, and referrer data. Prefer the `Authorization` header. Never put a provider BYOK credential in a URL.
+  Keep Scrinly keys out of browser code, query strings, analytics, logs, screenshots, and webhook payloads. Public documentation intentionally does not offer query-string authentication.
 </Warning>
 
-## Provider keys
+## OpenAI bring-your-own-key
 
-A request that interprets a blueprint may include an ephemeral provider key in a separate header:
+Visual Style Guide requests may use an ephemeral OpenAI key:
 
 ```http
-X-Scrinly-Provider-API-Key: your_provider_key
+X-Scrinly-Provider-API-Key: $OPENAI_API_KEY
 ```
 
-`Authorization` still contains the Scrinly key. Provider keys are accepted only in this header and are not stored, echoed, or logged. See [Page blueprints](/guides/blueprints).
+`Authorization` still carries the Scrinly key. The provider key is accepted only on screenshot requests with `styleGuide` enabled, is synchronous-only, and is never stored, echoed, logged, or added to a queue. BYOK is intended for server-to-server calls.
 
-## Authentication responses
+## Page credentials
 
-| Status | Meaning |
-| --- | --- |
-| `401` | Missing, invalid, or revoked Scrinly API key |
-| `402` | The account has reached its credit limit |
-| `403` | The account is inactive or the requested action is forbidden |
-| `404` | The resource does not exist or belongs to another account |
+For pages you are authorized to access, pass request headers through the JSON `headers` object and structured cookies through `cookies`. These values influence capture identity when screenshot caching is enabled, but cache keys contain only an opaque keyed fingerprint.

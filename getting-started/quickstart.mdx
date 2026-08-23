@@ -1,31 +1,21 @@
 ---
 title: "Quickstart"
-description: "Make your first Scrinly snapshot request in five minutes."
+description: "Capture your first Scrinly screenshot in five minutes."
 ---
 
-## 1. Create an API key
-
-Enter your email at the [Scrinly dashboard](https://app.scrinly.com) and click the link we send you. There is no password to choose. Your account is created on the free plan with 100 credits a month, and your first API key is issued immediately.
-
-Store it in your server-side secret manager.
-
-```bash
-export SCRINLY_API_KEY="sk_live_your_key"
-```
-
-## 2. Extract a page
+Create an API key in the [Scrinly dashboard](https://app.scrinly.com), save it in a server-side environment variable, and make a request.
 
 <CodeGroup>
 ```bash cURL
-curl --get "https://api.scrinly.com/render/snapshot" \
+curl --get "https://api.scrinly.com/render/screenshot" \
   --header "Authorization: Bearer $SCRINLY_API_KEY" \
   --data-urlencode "url=https://example.com" \
-  --data-urlencode "markdown=true" \
-  --data-urlencode "links=true"
+  --data-urlencode "format=png" \
+  --output screenshot.png
 ```
 
 ```javascript JavaScript
-const response = await fetch("https://api.scrinly.com/render/snapshot", {
+const response = await fetch("https://api.scrinly.com/render/screenshot", {
   method: "POST",
   headers: {
     Authorization: `Bearer ${process.env.SCRINLY_API_KEY}`,
@@ -33,14 +23,12 @@ const response = await fetch("https://api.scrinly.com/render/snapshot", {
   },
   body: JSON.stringify({
     url: "https://example.com",
-    markdown: true,
-    links: true,
+    format: "png",
   }),
 });
 
 if (!response.ok) throw new Error(await response.text());
-const snapshot = await response.json();
-console.log(snapshot.metadata.title, snapshot.markdown);
+const image = Buffer.from(await response.arrayBuffer());
 ```
 
 ```python Python
@@ -48,33 +36,25 @@ import os
 import requests
 
 response = requests.post(
-    "https://api.scrinly.com/render/snapshot",
+    "https://api.scrinly.com/render/screenshot",
     headers={"Authorization": f"Bearer {os.environ['SCRINLY_API_KEY']}"},
-    json={
-        "url": "https://example.com",
-        "markdown": True,
-        "links": True,
-    },
-    timeout=70,
+    json={"url": "https://example.com", "format": "png"},
 )
 response.raise_for_status()
-snapshot = response.json()
-print(snapshot["metadata"]["title"])
+open("screenshot.png", "wb").write(response.content)
 ```
 </CodeGroup>
 
-Metadata is always included. Optional extraction fields appear only when requested.
+The response is binary because storage is off. To receive JSON and a direct provider URL, add `store:true` and a `storage_path`:
 
-## 3. Check usage
-
-```bash
-curl "https://api.scrinly.com/usage" \
-  --header "Authorization: Bearer $SCRINLY_API_KEY"
+```json
+{
+  "url": "https://example.com",
+  "format": "jpg",
+  "fullPage": true,
+  "store": true,
+  "storage_path": "screenshots"
+}
 ```
 
-Every render response also includes `X-Scrinly-Credits-Used` and `X-Scrinly-Credits-Limit`.
-
-<CardGroup cols={2}>
-  <Card title="Capture screenshots" href="/guides/screenshots" icon="camera" />
-  <Card title="Blueprint a page" href="/guides/blueprints" icon="wand-magic-sparkles" />
-</CardGroup>
+Next, learn how [stored screenshots](/guides/screenshots#stored-json-responses), [regions](/guides/regions), and [asynchronous jobs](/guides/async-jobs) change the response.
