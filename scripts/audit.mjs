@@ -151,6 +151,14 @@ if (docs.name !== 'Scrinly API') failures.push('Mintlify product name must remai
 if (docs.description !== 'Screenshot API for AI agents and automation.') failures.push('Mintlify description is not the approved audience wording');
 if (docs.colors?.primary !== '#56C0EF') failures.push('Mintlify primary color changed');
 
+const quickstart = await readFile(join(root, 'getting-started', 'quickstart.mdx'), 'utf8');
+if (!quickstart.includes('[Try the Screenshot Playground](https://app.scrinly.com/#playground)')) {
+  failures.push('Quickstart is missing the authenticated Screenshot Playground link');
+}
+if (!/Sign-in is required/iu.test(quickstart)) {
+  failures.push('Quickstart does not disclose that the Screenshot Playground requires sign-in');
+}
+
 const navigationText = JSON.stringify(docs.navigation ?? {});
 for (const prefix of operatorPrefixes) if (navigationText.includes(prefix)) failures.push(`Operator route appears in navigation: ${prefix}`);
 
