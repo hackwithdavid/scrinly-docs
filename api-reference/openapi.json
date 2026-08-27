@@ -36,6 +36,8 @@
           { "$ref": "#/components/parameters/Device" },
           { "$ref": "#/components/parameters/FullPage" },
           { "$ref": "#/components/parameters/Theme" },
+          { "$ref": "#/components/parameters/Timeout" },
+          { "$ref": "#/components/parameters/WaitUntil" },
           { "$ref": "#/components/parameters/Store" },
           { "$ref": "#/components/parameters/StoragePath" },
           { "$ref": "#/components/parameters/Regions" },
@@ -53,6 +55,7 @@
           "402": { "$ref": "#/components/responses/PaymentRequired" },
           "422": { "$ref": "#/components/responses/CaptureFailed" },
           "429": { "$ref": "#/components/responses/RateLimited" },
+          "504": { "$ref": "#/components/responses/NavigationTimeout" },
           "503": { "$ref": "#/components/responses/Unavailable" }
         }
       },
@@ -87,6 +90,7 @@
           "402": { "$ref": "#/components/responses/PaymentRequired" },
           "422": { "$ref": "#/components/responses/CaptureFailed" },
           "429": { "$ref": "#/components/responses/RateLimited" },
+          "504": { "$ref": "#/components/responses/NavigationTimeout" },
           "503": { "$ref": "#/components/responses/Unavailable" }
         }
       }
@@ -374,6 +378,8 @@
       "Device": { "name": "device", "in": "query", "schema": { "type": "string" }, "description": "Server-supported device preset; overrides width and height." },
       "FullPage": { "name": "fullPage", "in": "query", "schema": { "type": "boolean", "default": false } },
       "Theme": { "name": "theme", "in": "query", "schema": { "type": "string", "enum": ["light", "dark"], "default": "light" } },
+      "Timeout": { "name": "timeout", "in": "query", "schema": { "type": "integer", "minimum": 10, "maximum": 60, "default": 30 } },
+      "WaitUntil": { "name": "waitUntil", "in": "query", "schema": { "type": "string", "enum": ["load", "domcontentloaded", "networkidle0", "networkidle2"], "default": "load" }, "description": "Navigation readiness strategy. Network-idle modes are opt-in for pages that eventually become quiet." },
       "Store": { "name": "store", "in": "query", "schema": { "type": "boolean", "default": false } },
       "StoragePath": { "name": "storage_path", "in": "query", "schema": { "type": "string" } },
       "Regions": { "name": "regions", "in": "query", "schema": { "type": "boolean", "default": false }, "description": "Adds ordered full-page crops and two credits; implies full-page storage." },
@@ -420,6 +426,7 @@
       "Conflict": { "description": "Conflicting run or state transition", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
       "TooLarge": { "description": "Request or image exceeds limits", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
       "CaptureFailed": { "description": "Complete finite screenshot could not be produced", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+      "NavigationTimeout": { "description": "Page navigation exceeded the requested timeout; the complete charge is refunded and the failure is retryable.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
       "DiffFailed": { "description": "Source integrity or diff processing failed; credit refunded", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
       "RateLimited": { "description": "Host or provider rate limit", "headers": { "Retry-After": { "schema": { "type": "integer" } } }, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
       "Unavailable": { "description": "Required platform configuration or provider unavailable", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
@@ -439,7 +446,7 @@
           "fullPage": { "type": "boolean", "default": false },
           "theme": { "type": "string", "enum": ["light", "dark"], "default": "light" },
           "timeout": { "type": "integer", "minimum": 10, "maximum": 60, "default": 30 },
-          "waitUntil": { "type": "string", "enum": ["load", "domcontentloaded", "networkidle0", "networkidle2"], "default": "networkidle2" },
+          "waitUntil": { "type": "string", "enum": ["load", "domcontentloaded", "networkidle0", "networkidle2"], "default": "load" },
           "blockCookieBanners": { "type": "boolean" },
           "blockAds": { "type": "boolean" },
           "blockChatWidgets": { "type": "boolean" },

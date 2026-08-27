@@ -77,7 +77,7 @@ The response header `X-Scrinly-Storage-URL` points to the same complete screensh
 | `fullPage` | `false` | Bounded progressive scrolling and verified complete bitmap |
 | `theme` | `light` | `light` or `dark` color-scheme emulation |
 | `timeout` | `30` | 10–60 seconds |
-| `waitUntil` | `networkidle2` | `load`, `domcontentloaded`, `networkidle0`, or `networkidle2` |
+| `waitUntil` | `load` | `load`, `domcontentloaded`, `networkidle0`, or `networkidle2`; network-idle modes are opt-in for pages that eventually become quiet |
 | `hideSelectors` | — | Hide matching elements |
 | `clickSelectors` | — | Click selectors in order |
 | `scrollToElement` | — | Bring one element into view |
@@ -86,6 +86,8 @@ The response header `X-Scrinly-Storage-URL` points to the same complete screensh
 Cleanup controls include `blockCookieBanners`, `blockAds`, `blockChatWidgets`, `blockPopups`, and `blockAccessibilityWidgets`. Set them deliberately when the authored page should remain untouched.
 
 Full-page preparation progressively scrolls through finite content, waits for lazy images and fonts, returns to the top, and verifies the encoded image dimensions. An unbounded page or incomplete bitmap fails with a typed `capture_error` and refunds the screenshot credit rather than returning a silent crop.
+
+If page navigation exceeds `timeout`, Scrinly returns the retryable `navigation_timeout` capture error and refunds the complete charge. Increasing the timeout or explicitly selecting a stricter wait strategy is useful only when the target genuinely needs it.
 
 ## Raw design evidence
 
