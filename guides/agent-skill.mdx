@@ -1,0 +1,78 @@
+---
+title: "Scrinly agent skill"
+description: "Install reusable instructions for safe screenshots, regions, comparisons, polling, and credit settlement."
+---
+
+The Scrinly skill teaches compatible coding agents how to use the [remote MCP server](/guides/mcp) safely. It selects the correct tool, calculates the smallest valid `maxCredits` ceiling, preserves direct assets, polls durable jobs without resubmitting them, and reports actual refunds and net credits.
+
+The skill does not contain an API key and does not replace the MCP connection. Configure the MCP server first, then install the skill.
+
+## Install
+
+With Node.js 20.12 or newer, install the Scrinly skill globally from its public repository:
+
+```bash
+npx skills add davmixcool/skills --skill scrinly -g
+```
+
+The global installation makes the skill available across projects for agents that discover the shared `.agents/skills` location. To keep it in only the current project, omit `-g`.
+
+You can inspect the source before installing it at [github.com/davmixcool/skills](https://github.com/davmixcool/skills/tree/main/skills/scrinly).
+
+<Note>
+  Agent skill discovery varies by client. Claude Code users may alternatively copy the `skills/scrinly` directory into `~/.claude/skills/`. Restart an already-running client after installing or updating a skill.
+</Note>
+
+## What the skill enforces
+
+- Billable capture and comparison tools run only when requested or clearly authorized.
+- `maxCredits` matches the requested screenshot add-ons instead of using a broad ceiling.
+- A returned `jobId` is polled with `get_job_status`; the original billable call is never silently repeated.
+- A screenshot stays paired with its matching region manifest and hashes.
+- Partial region or Visual Style Guide failures preserve successful screenshot evidence and report the component refund.
+- Provider keys, page credentials, storage credentials, and webhook secrets never enter MCP tool arguments.
+- Direct provider URLs remain resource links rather than being proxied or converted to base64.
+
+## Example requests
+
+Check the connection and allowance without spending credits:
+
+```text
+Use the Scrinly skill to call get_usage. Do not capture anything.
+```
+
+Capture one stored screenshot:
+
+```text
+Use the Scrinly skill to capture https://example.com with maxCredits 1.
+Do not add regions, design evidence, or a Visual Style Guide.
+```
+
+Capture a full page as model-sized regions:
+
+```text
+Use the Scrinly skill to capture a stored full-page screenshot of
+https://example.com with regions and maxCredits 3.
+```
+
+Generate a Visual Style Guide:
+
+```text
+Use the Scrinly skill to capture https://example.com with a Visual Style Guide
+and maxCredits 6. Use the cached Style Guide if one is available.
+```
+
+For asynchronous work, keep the job ID in the same conversation:
+
+```text
+Capture https://example.com asynchronously with maxCredits 1. Poll the returned
+Scrinly job until it is terminal. Do not submit another capture.
+```
+
+## Results and failures
+
+A successful capture returns concise text, structured JSON, and resource links for the complete screenshot and any region crops. A comparison may also return an overlay, heatmap, or mask link. Report the terminal status and the core API's actual `credits.charged`, `credits.refunded`, and `credits.net` values.
+
+If an add-on fails but the screenshot succeeds, the skill treats the result as usable partial evidence. If a full-page capture is unbounded or incomplete, or a diff manifest does not match its screenshot hash, the skill reports the typed error and does not weaken validation or spend credits on an automatic retry.
+
+The skill source includes detailed tool contracts and workflow references. The public API remains the authority for validation, billing, storage, and refunds.

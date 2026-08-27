@@ -159,6 +159,29 @@ if (!/Sign-in is required/iu.test(quickstart)) {
   failures.push('Quickstart does not disclose that the Screenshot Playground requires sign-in');
 }
 
+const mcpGuide = await readFile(join(root, 'guides', 'mcp.mdx'), 'utf8');
+const skillGuide = await readFile(join(root, 'guides', 'agent-skill.mdx'), 'utf8');
+for (const required of [
+  'https://mcp.scrinly.com/mcp',
+  '`capture_screenshot`',
+  '`compare_screenshots`',
+  '`get_job_status`',
+  '`get_usage`',
+  '--bearer-token-env-var SCRINLY_API_KEY',
+  '"Authorization": "Bearer ${SCRINLY_API_KEY}"',
+]) {
+  if (!mcpGuide.includes(required)) failures.push(`MCP guide is missing required contract text: ${required}`);
+}
+if (!skillGuide.includes('npx skills add davmixcool/skills --skill scrinly -g')) {
+  failures.push('Agent skill guide is missing the public installation command');
+}
+if (!skillGuide.includes('[remote MCP server](/guides/mcp)')) {
+  failures.push('Agent skill guide does not explain its MCP dependency');
+}
+if (JSON.stringify(openapi).includes('mcp.scrinly.com') || Object.keys(openapi.paths ?? {}).includes('/mcp')) {
+  failures.push('MCP transport must not appear in the REST OpenAPI contract');
+}
+
 const navigationText = JSON.stringify(docs.navigation ?? {});
 for (const prefix of operatorPrefixes) if (navigationText.includes(prefix)) failures.push(`Operator route appears in navigation: ${prefix}`);
 

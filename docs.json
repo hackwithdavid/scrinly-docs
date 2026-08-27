@@ -42,6 +42,13 @@
             ]
           },
           {
+            "group": "AI agents",
+            "pages": [
+              "guides/mcp",
+              "guides/agent-skill"
+            ]
+          },
+          {
             "group": "Capture",
             "pages": [
               "guides/screenshots",
