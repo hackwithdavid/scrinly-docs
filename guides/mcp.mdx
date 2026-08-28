@@ -68,11 +68,15 @@ Use `/mcp` to confirm the connection. For an SSH or headless session, run `claud
 
 See the official [Claude Code MCP documentation](https://docs.anthropic.com/en/docs/claude-code/mcp) for scopes and configuration locations.
 
-## Server-to-server API key fallback
+## Connect with a Scrinly API key
 
-Non-interactive services may authenticate with a Scrinly API key instead of OAuth. Keep the key in the service's secret manager and send it only as the MCP transport's bearer credential. Never put it in tool arguments, URLs, repositories, frontend code, or chat messages.
+MCP clients without OAuth support and non-interactive services may authenticate with a Scrinly API key. Create the key in the [Scrinly dashboard](https://app.scrinly.com), keep it in the client process's environment or secret manager, and send it only as the MCP transport's bearer credential.
 
-For Codex automation launched from a controlled environment:
+<Warning>
+  Never put a Scrinly API key in tool arguments, URLs, repositories, frontend code, or chat messages. Prefer a client feature that reads the bearer token from an environment variable instead of storing the literal key in configuration.
+</Warning>
+
+### Codex with an API key
 
 ```bash
 codex mcp add scrinly-service \
@@ -80,7 +84,33 @@ codex mcp add scrinly-service \
   --bearer-token-env-var SCRINLY_API_KEY
 ```
 
-An equivalent generic HTTP client sends `Authorization: Bearer $SCRINLY_API_KEY` to the MCP endpoint. See [Authentication](/getting-started/authentication) for API-key handling guidance.
+The `SCRINLY_API_KEY` variable must be available to the process that launches Codex. Restart an already-open IDE after changing its launch environment.
+
+### Claude Code with an API key
+
+Claude Code can expand an environment variable in `.mcp.json`, keeping the literal key outside the project file:
+
+```json
+{
+  "mcpServers": {
+    "scrinly": {
+      "type": "http",
+      "url": "https://mcp.scrinly.com/mcp",
+      "headers": {
+        "Authorization": "Bearer ${SCRINLY_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+Launch Claude Code or its VS Code extension from an environment containing `SCRINLY_API_KEY`, then use `/mcp` to confirm the connection.
+
+### Other MCP clients
+
+Configure a Streamable HTTP server at `https://mcp.scrinly.com/mcp` and set its transport header to `Authorization: Bearer $SCRINLY_API_KEY`. Configuration syntax varies by client; use its environment-variable or secret-reference mechanism whenever available. The API key is a transport credential and must never appear inside a tool's input schema.
+
+See [Authentication](/getting-started/authentication) for API-key storage, rotation, and revocation guidance.
 
 ## Verify without spending credits
 

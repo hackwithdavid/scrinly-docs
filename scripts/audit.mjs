@@ -172,7 +172,9 @@ for (const required of [
   '`screenshots:write`',
   '`diffs:write`',
   '`usage:read`',
+  '## Connect with a Scrinly API key',
   '--bearer-token-env-var SCRINLY_API_KEY',
+  '"Authorization": "Bearer ${SCRINLY_API_KEY}"',
   'Authorization: Bearer $SCRINLY_API_KEY',
 ]) {
   if (!mcpGuide.includes(required)) failures.push(`MCP guide is missing required contract text: ${required}`);
@@ -180,7 +182,6 @@ for (const required of [
 for (const stale of [
   'The beta uses a Scrinly API key as a bearer credential',
   'OAuth, monitoring tools, and private-source credentials are deferred',
-  '"Authorization": "Bearer ${SCRINLY_API_KEY}"',
 ]) {
   if (mcpGuide.includes(stale)) failures.push(`MCP guide contains stale pre-OAuth guidance: ${stale}`);
 }
