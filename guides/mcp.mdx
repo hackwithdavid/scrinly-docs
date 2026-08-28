@@ -11,9 +11,9 @@ https://mcp.scrinly.com/mcp
 
 The MCP server is a narrow gateway to the same screenshot platform documented here. Rendering, validation, billing, storage, queues, caching, and Visual Style Guide generation remain owned by the Scrinly API.
 
-<Warning>
-  The beta uses a Scrinly API key as a bearer credential and is intended for native and server-side MCP clients. Never put the key in a tool argument, URL, browser bundle, repository, or chat message.
-</Warning>
+<Note>
+  OAuth is the recommended connection method for interactive clients. You sign in to Scrinly in the browser and approve a bounded set of permissions; the MCP client never receives your Scrinly API key.
+</Note>
 
 ## Available tools
 
@@ -26,55 +26,61 @@ The MCP server is a narrow gateway to the same screenshot platform documented he
 
 Tool discovery and authentication do not consume credits.
 
-## Keep the key outside client configuration
+## Connect with OAuth
 
-Create a key in the [Scrinly dashboard](https://app.scrinly.com), then inject it as `SCRINLY_API_KEY` through your operating-system secret store, password manager, or a private launcher. Do not paste a literal key into an MCP configuration file or a shell command that will be retained in history.
+Scrinly publishes OAuth discovery metadata at the MCP origin and supports authorization code flow with S256 PKCE. During authorization, Scrinly shows the client and requested permissions before you approve access.
 
-An untracked mode-600 environment file can be used by a private launcher, but Codex and Claude Code do not automatically read arbitrary environment files. The variable must exist in the process that launches the CLI or IDE. See [Authentication](/getting-started/authentication) for the general key policy.
+| Scope | Allows |
+| --- | --- |
+| `screenshots:write` | Capture stored screenshots and poll their jobs |
+| `diffs:write` | Compare stored screenshots and poll their jobs |
+| `usage:read` | Read the connected account's credit allowance |
 
-## Connect Codex
+OAuth access is account-scoped and can be revoked without rotating a Scrinly API key. The MCP server still enforces `maxCredits` on every billable tool call.
 
-Make `SCRINLY_API_KEY` available to the environment that launches Codex, then register the Streamable HTTP server:
+### Codex CLI and IDE extension
+
+Register the Streamable HTTP endpoint, then complete browser authorization:
 
 ```bash
 codex mcp add scrinly \
+  --url https://mcp.scrinly.com/mcp
+```
+
+Codex normally starts the discovered OAuth flow immediately. If authorization was skipped or needs to be repeated, run `codex mcp login scrinly`. Do not add an `Authorization` header or an explicit OAuth resource. Codex discovers both the authorization server and protected resource from Scrinly's metadata. Verify the connection with `codex mcp get scrinly` or open `/mcp` inside Codex.
+
+Codex CLI and the Codex IDE extension share MCP configuration on the same host. Once authorization succeeds in the CLI, the connected server is available to the extension after it refreshes its MCP configuration.
+
+See the official [Codex MCP documentation](https://developers.openai.com/codex/mcp/) for client configuration and OAuth support.
+
+### Claude Code
+
+Register the HTTP server at user scope, then complete browser authorization:
+
+```bash
+claude mcp add --transport http --scope user \
+  scrinly https://mcp.scrinly.com/mcp
+
+claude mcp login scrinly
+```
+
+Use `/mcp` to confirm the connection. For an SSH or headless session, run `claude mcp login --no-browser scrinly` and follow the printed instructions. Do not configure an `Authorization` header when using OAuth.
+
+See the official [Claude Code MCP documentation](https://docs.anthropic.com/en/docs/claude-code/mcp) for scopes and configuration locations.
+
+## Server-to-server API key fallback
+
+Non-interactive services may authenticate with a Scrinly API key instead of OAuth. Keep the key in the service's secret manager and send it only as the MCP transport's bearer credential. Never put it in tool arguments, URLs, repositories, frontend code, or chat messages.
+
+For Codex automation launched from a controlled environment:
+
+```bash
+codex mcp add scrinly-service \
   --url https://mcp.scrinly.com/mcp \
   --bearer-token-env-var SCRINLY_API_KEY
 ```
 
-Verify the configuration with `codex mcp get scrinly` or open `/mcp` inside Codex. Codex CLI and the Codex IDE extension share MCP configuration on the same host. If you add the environment variable after launching an IDE, fully restart the IDE from an environment that can read it.
-
-The equivalent `~/.codex/config.toml` entry is:
-
-```toml
-[mcp_servers.scrinly]
-url = "https://mcp.scrinly.com/mcp"
-bearer_token_env_var = "SCRINLY_API_KEY"
-```
-
-See the official [Codex MCP documentation](https://developers.openai.com/codex/mcp/) for client configuration details.
-
-## Connect Claude Code
-
-Claude Code supports environment expansion in `.mcp.json`. This project-scoped example contains only a variable name, so the actual key stays outside the file:
-
-```json
-{
-  "mcpServers": {
-    "scrinly": {
-      "type": "http",
-      "url": "https://mcp.scrinly.com/mcp",
-      "headers": {
-        "Authorization": "Bearer ${SCRINLY_API_KEY}"
-      }
-    }
-  }
-}
-```
-
-Launch Claude Code from an environment containing `SCRINLY_API_KEY`, approve the project-scoped server when prompted, then use `/mcp` to confirm it is connected. The Claude Code VS Code extension reads the same Claude Code MCP configuration, but it must also inherit the environment variable.
-
-See the official [Claude Code MCP documentation](https://docs.anthropic.com/en/docs/claude-code/mcp) for scopes and configuration locations.
+An equivalent generic HTTP client sends `Authorization: Bearer $SCRINLY_API_KEY` to the MCP endpoint. See [Authentication](/getting-started/authentication) for API-key handling guidance.
 
 ## Verify without spending credits
 
@@ -125,7 +131,7 @@ overlay visualization, and maxCredits 1. Use their matching region manifests.
 
 `compare_screenshots` supports `pixel` and `perceptual` modes plus `overlay`, `heatmap`, `mask`, and `none` visualizations. When both manifests validate, Scrinly compares corresponding regions independently. The result includes similarity, changed pixels, consolidated bounds, region results, and the direct visualization link.
 
-## Beta safety boundary
+## Safety boundary
 
 The MCP tools intentionally exclude:
 
@@ -135,6 +141,6 @@ The MCP tools intentionally exclude:
 - Webhook URLs and secrets.
 - Provider, model, endpoint, and internal-route overrides.
 
-Screenshot targets must be publicly accessible pages accepted by Scrinly's URL policy. Diff inputs must be publicly fetchable HTTPS JPEG or PNG assets. OAuth, monitoring tools, and private-source credentials are deferred until the four-tool beta is stable.
+Screenshot targets must be publicly accessible pages accepted by Scrinly's URL policy. Diff inputs must be publicly fetchable HTTPS JPEG or PNG assets. Monitoring tools and private-source credentials remain outside the four-tool MCP surface.
 
 For repeatable agent behavior, install the [Scrinly agent skill](/guides/agent-skill).

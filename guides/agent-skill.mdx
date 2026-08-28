@@ -5,7 +5,7 @@ description: "Install reusable instructions for safe screenshots, regions, compa
 
 The Scrinly skill teaches compatible coding agents how to use the [remote MCP server](/guides/mcp) safely. It selects the correct tool, calculates the smallest valid `maxCredits` ceiling, preserves direct assets, polls durable jobs without resubmitting them, and reports actual refunds and net credits.
 
-The skill does not contain an API key and does not replace the MCP connection. Configure the MCP server first, then install the skill.
+The skill contains no credentials and does not replace the MCP connection. Configure the MCP server with the recommended OAuth flow first, then install the skill. Server-to-server clients may use the documented API-key fallback instead.
 
 ## Install
 
@@ -32,6 +32,8 @@ You can inspect the source before installing it at [github.com/davmixcool/skills
 - Partial region or Visual Style Guide failures preserve successful screenshot evidence and report the component refund.
 - Provider keys, page credentials, storage credentials, and webhook secrets never enter MCP tool arguments.
 - Direct provider URLs remain resource links rather than being proxied or converted to base64.
+
+OAuth permissions still govern which tools the connected agent can call. The skill cannot expand its scopes, bypass Scrinly's `maxCredits` guard, or access an account other than the one approved during authorization.
 
 ## Example requests
 

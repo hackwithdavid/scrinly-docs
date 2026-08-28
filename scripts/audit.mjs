@@ -167,10 +167,22 @@ for (const required of [
   '`compare_screenshots`',
   '`get_job_status`',
   '`get_usage`',
+  'codex mcp login scrinly',
+  'claude mcp login scrinly',
+  '`screenshots:write`',
+  '`diffs:write`',
+  '`usage:read`',
   '--bearer-token-env-var SCRINLY_API_KEY',
-  '"Authorization": "Bearer ${SCRINLY_API_KEY}"',
+  'Authorization: Bearer $SCRINLY_API_KEY',
 ]) {
   if (!mcpGuide.includes(required)) failures.push(`MCP guide is missing required contract text: ${required}`);
+}
+for (const stale of [
+  'The beta uses a Scrinly API key as a bearer credential',
+  'OAuth, monitoring tools, and private-source credentials are deferred',
+  '"Authorization": "Bearer ${SCRINLY_API_KEY}"',
+]) {
+  if (mcpGuide.includes(stale)) failures.push(`MCP guide contains stale pre-OAuth guidance: ${stale}`);
 }
 if (!skillGuide.includes('npx skills add davmixcool/skills --skill scrinly -g')) {
   failures.push('Agent skill guide is missing the public installation command');
