@@ -3,7 +3,7 @@ title: "Visual diffs"
 description: "Compare two stored screenshots with pixel or perceptual analysis."
 ---
 
-`POST /render/diff` compares two publicly fetchable HTTPS JPEG or PNG screenshots. Pass the existing `media` objects verbatim; include both `regions-v1` manifests to enable region-aware matching.
+`POST /render/diff` compares two publicly fetchable HTTPS JPEG or PNG screenshots. Pass the existing `media` objects verbatim; include both regions manifests to enable region-aware matching. Saved `regions-v1` and new `regions-v2` manifests are supported, including mixed-version comparisons.
 
 ```json
 {

@@ -100,6 +100,14 @@ for (const route of expected) if (!actual.has(route)) failures.push(`OpenAPI is 
 for (const route of actual) if (!expected.has(route)) failures.push(`OpenAPI exposes unexpected route ${route}`);
 if (actual.size !== 19) failures.push(`OpenAPI must expose exactly 19 operations, found ${actual.size}`);
 
+const regionVersions = openapi.components?.schemas?.Regions?.properties?.version;
+if (JSON.stringify(regionVersions?.enum) !== JSON.stringify(['regions-v1', 'regions-v2']) || regionVersions?.const) {
+  failures.push('Regions must accept saved v1 and new v2 manifests');
+}
+if (openapi.components?.schemas?.Coverage?.properties?.segmentationDegraded?.type !== 'boolean') {
+  failures.push('Regions v2 degraded coverage must be documented as an additive boolean');
+}
+
 const ids = new Map();
 for (const operation of operations) {
   const id = operation.value.operationId;

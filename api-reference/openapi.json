@@ -583,7 +583,7 @@
         "type": "object",
         "required": ["version", "coordinateSpace", "screenshot", "limits", "items", "coverage"],
         "properties": {
-          "version": { "type": "string", "const": "regions-v1" },
+          "version": { "type": "string", "enum": ["regions-v1", "regions-v2"], "description": "New captures return regions-v2. Saved v1 manifests remain valid diff inputs, including mixed-version comparisons." },
           "coordinateSpace": { "type": "string", "const": "screenshot_pixels" },
           "screenshot": { "type": "object", "properties": { "width": { "type": "integer" }, "height": { "type": "integer" }, "sha256": { "type": "string" } }, "required": ["width", "height", "sha256"] },
           "limits": { "type": "object", "properties": { "maxRegionHeight": { "type": "integer", "const": 1600 }, "maxAssets": { "type": "integer", "const": 32 } }, "required": ["maxRegionHeight", "maxAssets"] },
@@ -597,6 +597,7 @@
           "ratio": { "type": "number", "minimum": 0, "maximum": 1 },
           "truncated": { "type": "boolean" },
           "omittedAssets": { "type": "integer", "minimum": 0 },
+          "segmentationDegraded": { "type": "boolean", "description": "True when unresolved geometry fallback was needed. Included in new v2 captures; absent from historical v1 manifests." },
           "safeCuts": { "type": "integer", "minimum": 0 },
           "forcedCuts": { "type": "integer", "minimum": 0 }
         },
