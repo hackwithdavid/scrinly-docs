@@ -21,6 +21,161 @@
     { "name": "Recipients" }
   ],
   "paths": {
+    "/render/screenshot/{id}/transform": {
+      "post": {
+        "tags": [
+          "Screenshots"
+        ],
+        "operationId": "transformScreenshot",
+        "summary": "Transform a stored screenshot",
+        "description": "Account-owned deterministic crop, resize and encoding. Always stores direct-provider assets without recapturing the page or calling AI.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^scr_"
+            },
+            "description": "An unexpired screenshotId belonging to the authenticated account."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransformRequest"
+              },
+              "example": {
+                "source": {
+                  "type": "region",
+                  "regionId": "region-1"
+                },
+                "operations": [
+                  {
+                    "resize": {
+                      "width": 1200,
+                      "height": 630,
+                      "fit": "contain"
+                    }
+                  },
+                  {
+                    "format": {
+                      "type": "webp",
+                      "quality": 80
+                    }
+                  }
+                ],
+                "cache": false,
+                "async": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "All outputs completed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/TransformSuccess"
+                    },
+                    {
+                      "$ref": "#/components/schemas/TransformBatch"
+                    }
+                  ]
+                }
+              }
+            },
+            "headers": {
+              "X-Scrinly-Storage-URL": {
+                "description": "Direct URL; single-output success only.",
+                "schema": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            }
+          },
+          "202": {
+            "$ref": "#/components/responses/AsyncAccepted"
+          },
+          "207": {
+            "description": "Partial success with per-output settlements",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransformBatch"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request, no charge",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "402": {
+            "$ref": "#/components/responses/PaymentRequired"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "410": {
+            "description": "Owned reference expired or unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "$ref": "#/components/responses/TooLarge"
+          },
+          "422": {
+            "description": "All outputs failed, with settled credits",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/Error"
+                    },
+                    {
+                      "$ref": "#/components/schemas/TransformBatch"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Infrastructure unavailable; ambiguous settlement supplies a polling job ID rather than claiming a refund",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/render/screenshot": {
       "get": {
         "tags": ["Screenshots"],
@@ -432,6 +587,622 @@
       "Unavailable": { "description": "Required platform configuration or provider unavailable", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
     },
     "schemas": {
+      "TransformBounds": {
+        "type": "object",
+        "properties": {
+          "x": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "y": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "width": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 32768
+          },
+          "height": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 32768
+          }
+        },
+        "required": [
+          "x",
+          "y",
+          "width",
+          "height"
+        ],
+        "additionalProperties": false
+      },
+      "TransformSource": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "const": "screenshot"
+              }
+            },
+            "required": [
+              "type"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "const": "region"
+              },
+              "regionId": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "type",
+              "regionId"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "const": "part"
+              },
+              "regionId": {
+                "type": "string"
+              },
+              "partId": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "type",
+              "regionId",
+              "partId"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "const": "bounds"
+              },
+              "bounds": {
+                "$ref": "#/components/schemas/TransformBounds"
+              }
+            },
+            "required": [
+              "type",
+              "bounds"
+            ],
+            "additionalProperties": false
+          }
+        ],
+        "description": "Defaults to complete screenshot; geometry in screenshot pixels."
+      },
+      "TransformOperation": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "crop": {
+                "$ref": "#/components/schemas/TransformBounds"
+              }
+            },
+            "required": [
+              "crop"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "resize": {
+                "type": "object",
+                "properties": {
+                  "width": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 32768
+                  },
+                  "height": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 32768
+                  },
+                  "fit": {
+                    "enum": [
+                      "contain",
+                      "cover",
+                      "fill"
+                    ],
+                    "default": "contain"
+                  },
+                  "background": {
+                    "type": "string",
+                    "pattern": "^#[a-fA-F0-9]{6}$"
+                  }
+                },
+                "additionalProperties": false,
+                "anyOf": [
+                  {
+                    "required": [
+                      "width"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "height"
+                    ]
+                  }
+                ]
+              }
+            },
+            "required": [
+              "resize"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "format": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "enum": [
+                      "jpeg",
+                      "png",
+                      "webp"
+                    ]
+                  },
+                  "quality": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100,
+                    "default": 80
+                  },
+                  "background": {
+                    "type": "string",
+                    "pattern": "^#[a-fA-F0-9]{6}$"
+                  }
+                },
+                "required": [
+                  "type"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "format"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "TransformOutputSpec": {
+        "type": "object",
+        "properties": {
+          "source": {
+            "$ref": "#/components/schemas/TransformSource"
+          },
+          "operations": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 4,
+            "items": {
+              "$ref": "#/components/schemas/TransformOperation"
+            },
+            "description": "Ordered crop/resize and optional encoding. Format may occur once, last. Otherwise retain source format, lossy quality 80."
+          }
+        },
+        "required": [
+          "operations"
+        ],
+        "additionalProperties": false
+      },
+      "TransformRequest": {
+        "type": "object",
+        "properties": {
+          "source": {
+            "$ref": "#/components/schemas/TransformSource"
+          },
+          "operations": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 4,
+            "items": {
+              "$ref": "#/components/schemas/TransformOperation"
+            },
+            "description": "Ordered crop/resize and optional encoding. Format may occur once, last. Otherwise retain source format, lossy quality 80."
+          },
+          "outputs": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 16,
+            "items": {
+              "$ref": "#/components/schemas/TransformOutputSpec"
+            }
+          },
+          "cache": {
+            "type": "boolean",
+            "default": false
+          },
+          "async": {
+            "type": "boolean",
+            "default": false
+          },
+          "store": {
+            "const": true
+          },
+          "webhookUrl": {
+            "type": "string",
+            "format": "uri"
+          },
+          "webhookSecret": {
+            "type": "string",
+            "writeOnly": true
+          },
+          "storage_path": {
+            "type": "string",
+            "default": "transforms"
+          },
+          "storage_provider": {
+            "type": "string",
+            "enum": [
+              "b2",
+              "s3",
+              "r2"
+            ]
+          },
+          "storage_bucket": {
+            "type": "string"
+          },
+          "storage_endpoint": {
+            "type": "string",
+            "format": "uri",
+            "writeOnly": true
+          },
+          "storage_region": {
+            "type": "string"
+          },
+          "storage_access_key_id": {
+            "type": "string",
+            "writeOnly": true
+          },
+          "storage_secret_access_key": {
+            "type": "string",
+            "writeOnly": true
+          },
+          "storage_application_key_id": {
+            "type": "string",
+            "writeOnly": true
+          },
+          "storage_application_key": {
+            "type": "string",
+            "writeOnly": true
+          },
+          "storage_public_domain": {
+            "type": "string",
+            "format": "uri"
+          },
+          "storage_return_location": {
+            "type": "boolean",
+            "default": false
+          },
+          "storage_bucket_id": {
+            "type": "string"
+          },
+          "storage_bucket_name": {
+            "type": "string"
+          },
+          "storage_account_id": {
+            "type": "string"
+          },
+          "storage_class": {
+            "type": "string",
+            "enum": [
+              "standard",
+              "reduced_redundancy",
+              "standard_ia",
+              "onezone_ia",
+              "intelligent_tiering",
+              "glacier",
+              "deep_archive",
+              "outposts",
+              "glacier_ir"
+            ]
+          },
+          "storage_acl": {
+            "type": "string",
+            "enum": [
+              "private",
+              "public-read"
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "oneOf": [
+          {
+            "required": [
+              "operations"
+            ],
+            "not": {
+              "required": [
+                "outputs"
+              ]
+            }
+          },
+          {
+            "required": [
+              "outputs"
+            ],
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "source"
+                  ]
+                },
+                {
+                  "required": [
+                    "operations"
+                  ]
+                }
+              ]
+            }
+          }
+        ],
+        "description": "256 KiB body limit. All outputs validate before reserving one credit per output. No uploads, source URLs, page credentials, or engine selectors."
+      },
+      "TransformMedia": {
+        "type": "object",
+        "required": [
+          "stored",
+          "url",
+          "contentType",
+          "width",
+          "height",
+          "bytes",
+          "sha256"
+        ],
+        "properties": {
+          "stored": {
+            "type": "boolean",
+            "const": true
+          },
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "description": "Direct B2, S3, or R2 URL."
+          },
+          "key": {
+            "type": "string"
+          },
+          "location": {
+            "type": "string"
+          },
+          "contentType": {
+            "type": "string",
+            "enum": [
+              "image/jpeg",
+              "image/png",
+              "image/webp"
+            ]
+          },
+          "width": {
+            "type": "integer"
+          },
+          "height": {
+            "type": "integer"
+          },
+          "bytes": {
+            "type": "integer"
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        },
+        "additionalProperties": true
+      },
+      "TransformSuccess": {
+        "type": "object",
+        "required": [
+          "success",
+          "type",
+          "assetId",
+          "screenshotId",
+          "source",
+          "executedPlan",
+          "provenance",
+          "media",
+          "credits",
+          "referenceExpiresAt",
+          "cacheHit"
+        ],
+        "properties": {
+          "success": {
+            "const": true
+          },
+          "type": {
+            "const": "transform"
+          },
+          "assetId": {
+            "type": "string",
+            "pattern": "^ast_"
+          },
+          "screenshotId": {
+            "type": "string",
+            "pattern": "^scr_"
+          },
+          "source": {
+            "type": "object",
+            "required": [
+              "type",
+              "bounds"
+            ],
+            "properties": {
+              "type": {
+                "enum": [
+                  "screenshot",
+                  "region",
+                  "part",
+                  "bounds"
+                ]
+              },
+              "regionId": {
+                "type": "string"
+              },
+              "partId": {
+                "type": "string"
+              },
+              "bounds": {
+                "$ref": "#/components/schemas/TransformBounds"
+              }
+            }
+          },
+          "executedPlan": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 4,
+            "items": {
+              "$ref": "#/components/schemas/TransformOperation"
+            },
+            "description": "Ordered crop/resize and optional encoding. Format may occur once, last. Otherwise retain source format, lossy quality 80."
+          },
+          "provenance": {
+            "type": "object",
+            "required": [
+              "sourceSha256",
+              "sourceBounds",
+              "engine",
+              "outputSha256"
+            ],
+            "properties": {
+              "sourceSha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "sourceBounds": {
+                "$ref": "#/components/schemas/TransformBounds"
+              },
+              "outputSha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "engine": {
+                "type": "object",
+                "properties": {
+                  "backend": {
+                    "const": "browser-v1"
+                  },
+                  "version": {
+                    "const": "screenshot-transform-v1"
+                  },
+                  "browser": {
+                    "type": "string"
+                  },
+                  "codec": {
+                    "const": "canvas-2d-v1"
+                  }
+                },
+                "required": [
+                  "backend",
+                  "version",
+                  "browser",
+                  "codec"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "media": {
+            "$ref": "#/components/schemas/TransformMedia"
+          },
+          "credits": {
+            "$ref": "#/components/schemas/Credits"
+          },
+          "referenceExpiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "cacheHit": {
+            "type": "boolean"
+          }
+        }
+      },
+      "TransformBatch": {
+        "type": "object",
+        "required": [
+          "success",
+          "type",
+          "screenshotId",
+          "results",
+          "credits"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "type": {
+            "const": "transform"
+          },
+          "screenshotId": {
+            "type": "string"
+          },
+          "results": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 16,
+            "items": {
+              "allOf": [
+                {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/TransformSuccess"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  ]
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "index"
+                  ],
+                  "properties": {
+                    "index": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 15
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "credits": {
+            "$ref": "#/components/schemas/Credits"
+          },
+          "error": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "retryable": {
+            "type": "boolean"
+          }
+        }
+      },
       "ScreenshotRequest": {
         "type": "object",
         "required": ["url"],
@@ -688,7 +1459,7 @@
         "properties": {
           "success": { "type": "boolean", "const": true },
           "id": { "type": "string", "format": "uuid" },
-          "type": { "type": "string", "enum": ["screenshot", "diff"] },
+          "type": { "type": "string", "enum": ["screenshot", "diff", "transform"] },
           "statusUrl": { "type": "string" },
           "message": { "type": "string" },
           "credits": { "$ref": "#/components/schemas/Credits" }
@@ -837,7 +1608,7 @@
           "id": { "type": "string", "format": "uuid" },
           "status": { "type": "string", "enum": ["queued", "in_progress", "completed", "failed"] },
           "progress": { "type": "integer", "minimum": 0, "maximum": 100 },
-          "result": { "oneOf": [ { "$ref": "#/components/schemas/ScreenshotResponse" }, { "$ref": "#/components/schemas/ScreenshotPartialResponse" }, { "$ref": "#/components/schemas/DiffResponse" } ] },
+          "result": { "oneOf": [ { "$ref": "#/components/schemas/ScreenshotResponse" }, { "$ref": "#/components/schemas/ScreenshotPartialResponse" }, { "$ref": "#/components/schemas/DiffResponse" }, { "$ref": "#/components/schemas/TransformSuccess" }, { "$ref": "#/components/schemas/TransformBatch" } ] },
           "error": { "$ref": "#/components/schemas/Error" },
           "createdAt": { "type": "string", "format": "date-time" },
           "startedAt": { "type": ["string", "null"], "format": "date-time" },

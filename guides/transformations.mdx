@@ -1,0 +1,178 @@
+---
+title: "Screenshot transformations"
+description: "Crop, resize, and encode an existing screenshot without capturing the page again."
+---
+
+Use the `screenshotId` from a [stored capture](/guides/screenshots) with
+`POST /render/screenshot/{id}/transform`. The reference must belong to your account
+and remain unexpired. Historical captures without a usable reference need recapturing.
+Transformations are deterministic image processing, not AI editing.
+
+## Send a transformation
+
+<CodeGroup>
+```bash cURL
+curl -X POST "https://api.scrinly.com/render/screenshot/$SCREENSHOT_ID/transform" \
+  -H "Authorization: Bearer $SCRINLY_API_KEY" \
+  -H 'Content-Type: application/json' \
+  -d '{"source":{"type":"region","regionId":"region-1"},"operations":[{"resize":{"width":1200,"height":630,"fit":"contain"}},{"format":{"type":"webp","quality":80}}]}'
+```
+```javascript JavaScript
+const response = await fetch(
+  `https://api.scrinly.com/render/screenshot/${process.env.SCREENSHOT_ID}/transform`,
+  {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${process.env.SCRINLY_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      source: { type: "region", regionId: "region-1" },
+      operations: [
+        { resize: { width: 1200, height: 630, fit: "contain" } },
+        { format: { type: "webp", quality: 80 } },
+      ],
+    }),
+  },
+);
+const result = await response.json();
+```
+```python Python
+import os
+import requests
+
+response = requests.post(
+    f"https://api.scrinly.com/render/screenshot/{os.environ['SCREENSHOT_ID']}/transform",
+    headers={"Authorization": f"Bearer {os.environ['SCRINLY_API_KEY']}"},
+    json={
+        "source": {"type": "region", "regionId": "region-1"},
+        "operations": [
+            {"resize": {"width": 1200, "height": 630, "fit": "contain"}},
+            {"format": {"type": "webp", "quality": 80}},
+        ],
+    },
+    timeout=150,
+)
+result = response.json()
+```
+</CodeGroup>
+
+Use region and part IDs from your own saved manifest; the example ID is a placeholder.
+Authentication requires the account's bearer API key. No provider key is needed.
+
+## Select pixels
+
+| `source` | Selection |
+| --- | --- |
+| Omitted or `{"type":"screenshot"}` | Complete screenshot |
+| `{"type":"region","regionId":"region-1"}` | Region bounds from a saved v1 or v2 manifest |
+| `{"type":"part","regionId":"region-1","partId":"region-1-part-0"}` | One part's bounds |
+| `{"type":"bounds","bounds":{"x":0,"y":100,"width":800,"height":600}}` | Integer screenshot-coordinate bounds |
+
+Every selection reads the original stored screenshot, not its previously encoded crop
+assets. The original bytes, dimensions, MIME type, size and SHA-256 are verified first.
+Source assets must be publicly fetchable over HTTPS. Redirects are subject to SSRF checks.
+Arbitrary source URLs, uploaded images, page headers, cookies and capture settings are not accepted.
+
+## Operations and encoding
+
+Operations run in array order, up to four per output:
+
+- `crop`: integer `x`, `y`, `width`, `height` inside the **current intermediate image**.
+- `resize`: `width`, `height`, and `fit`. Omit either dimension to preserve the current
+  aspect ratio, rounded to the nearest positive integer.
+- `format`: `type` of `jpeg`, `png` or `webp`, optional `quality` from 1–100, and an
+  optional `background`. This operation may appear once and must be last.
+
+Resize `fit` defaults to `contain`: fit all selected content with centered padding.
+`cover` fills the requested dimensions with a centered crop. `fill` stretches to both dimensions.
+
+PNG and WebP retain transparency. JPEG uses white for transparency; contain padding is
+transparent for alpha-capable output and white for JPEG. Supply a six-digit hex color
+such as `"background":"#ffffff"` on resize or format to choose a background.
+Resize's explicit background takes precedence for that operation's padding.
+
+Without a format operation, output retains the original screenshot format. Lossy quality
+defaults to 80; PNG is lossless and does not use the quality value. Geometry operations
+stay in memory and only the final image is encoded. JPEG output is still re-encoded:
+lossless cropping or preservation of original JPEG bytes is not promised. Browser/codec
+upgrades can change encoded bytes; provenance records the actual engine identity.
+
+## Multiple outputs and credits
+
+Replace top-level `source` and `operations` with an `outputs` array. Do not mix both forms:
+
+```json
+{
+  "outputs": [
+    {"operations": [{"resize": {"width": 640}}]},
+    {"operations": [{"resize": {"width": 320}}, {"format": {"type": "webp"}}]}
+  ],
+  "cache": true
+}
+```
+
+All specifications validate before any credit reservation. One credit per output is
+reserved before source or cache-artifact downloads. Each newly generated successful output
+costs one credit. Failed outputs and verified cache hits refund that reservation.
+Read `charged`, `refunded` and `net` rather than inferring settlement from HTTP status.
+
+Single-output success returns an `assetId`, parent `screenshotId`, resolved `source`,
+normalized `executedPlan`, provenance, direct-storage `media`, `referenceExpiresAt`,
+`cacheHit` and credits. Provenance includes source/output hashes, selected bounds and
+the transform, browser and codec versions.
+
+Multiple outputs return ordered `results`, each with an `index`, success/error and credits,
+plus aggregate credits. HTTP `200` means all outputs succeeded; `207` means partial success.
+All failed outputs produce a typed error response. Successful siblings remain available.
+If settlement cannot be confirmed, an availability error supplies a job ID for free polling;
+it does not claim a completed refund. Do not blindly submit a second paid request.
+
+## Storage, caching and retention
+
+Outputs are always stored: omit `store` or set it to `true`; `store:false` is rejected.
+Default storage uses `transforms`. Existing [B2/S3/R2 overrides](/guides/storage), custom
+prefixes and direct-provider URLs remain supported. No image proxy is introduced.
+Single-output success includes `X-Scrinly-Storage-URL`; multiple outputs use individual
+`media.url` values, without an ambiguous top-level storage header.
+
+Caching is opt-in with `cache:true`. Identity is account-, source-reference-, geometry-,
+operation-, destination- and engine-specific. Cached artifacts are downloaded and hash-verified,
+not trusted from their keys or a HEAD response alone. Missing or mismatched artifacts are
+regenerated; infrastructure failures do not silently trigger paid regeneration.
+Equivalent outputs within one request can reuse the first output only with caching enabled.
+
+Hits reuse the original `assetId` and metadata expiry. Cache lifetime is at most 24 hours,
+bounded by both the parent reference and derived metadata expiry; hits do not renew it.
+Reference retention is operator-controlled, initially 30 days. Expiry removes metadata only,
+not stored images. Customer objects may become unavailable earlier under customer retention
+policies. There is no asset lookup or transformation-history endpoint in this release.
+
+## Async jobs and webhooks
+
+Set `async:true` for the existing `202` job envelope and poll `/status/{jobId}` using
+the same account's API key. Polling is free; other accounts receive `404`.
+Add `webhookUrl` and optionally `webhookSecret` to request asynchronous signed delivery.
+Events are `transform.completed`, `transform.partial`, and `transform.failed`, with the
+settled response inside `result`. Existing [webhook signature verification](/guides/async-jobs)
+applies. Delivery retries do not rerun transformations or alter credit settlement.
+
+## Limits and failures
+
+| Limit | Maximum |
+| --- | --- |
+| JSON request body | 256 KiB |
+| Outputs / operations per output | 16 / 4 |
+| Encoded source / encoded output | 8 MiB each |
+| Source pixels | 24 MP |
+| Intermediate or final output | 8 MP each |
+| Aggregate final-output pixels | 32 MP |
+| Either image axis | 32,768 pixels |
+| Processing / upload per output | 20 / 30 seconds |
+| Overall execution | 120 seconds, including resumed work |
+
+Outputs run sequentially. A deadline preserves completed outputs and fails/refunds the
+remaining outputs. Missing or cross-account references return `404`; expired owned references
+return `410`. Typed failures cover invalid bounds, unsupported format, input size, source
+availability/hash mismatch, processing, storage and persistence. Public errors never include
+provider payloads or source URLs.
