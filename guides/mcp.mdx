@@ -21,7 +21,8 @@ The MCP server is a narrow gateway to the same screenshot platform documented he
 | --- | --- | ---: |
 | `capture_screenshot` | Captures and stores one screenshot, with optional design evidence, regions, or a Visual Style Guide | 1–7 credits |
 | `compare_screenshots` | Compares two stored screenshots with pixel or perceptual analysis | 1 credit |
-| `get_job_status` | Polls an account-owned asynchronous screenshot or diff job | Free |
+| `transform_screenshot` | Crops, resizes, or encodes an existing screenshot reference | 1 per output |
+| `get_job_status` | Polls an account-owned screenshot, diff, or transform job | Free |
 | `get_usage` | Reads the authenticated account's plan and credit allowance | Free |
 
 Tool discovery and authentication do not consume credits.
@@ -34,6 +35,7 @@ Scrinly publishes OAuth discovery metadata at the MCP origin and supports author
 | --- | --- |
 | `screenshots:write` | Capture stored screenshots and poll their jobs |
 | `diffs:write` | Compare stored screenshots and poll their jobs |
+| `transforms:write` | Transform stored screenshot references and poll transform jobs |
 | `usage:read` | Read the connected account's credit allowance |
 
 OAuth access is account-scoped and can be revoked without rotating a Scrinly API key. The MCP server still enforces `maxCredits` on every billable tool call.
@@ -161,6 +163,38 @@ overlay visualization, and maxCredits 1. Use their matching region manifests.
 
 `compare_screenshots` supports `pixel` and `perceptual` modes plus `overlay`, `heatmap`, `mask`, and `none` visualizations. When both manifests validate, Scrinly compares corresponding regions independently. The result includes similarity, changed pixels, consolidated bounds, region results, and the direct visualization link.
 
+## Transform an existing screenshot
+
+Use `transform_screenshot` with a returned, unexpired `screenshotId`. OAuth
+requires `transforms:write`; existing connections need reauthorization for this
+new permission. API-key connections remain supported.
+
+```json
+{
+  "screenshotId": "scr_REPLACE_WITH_RETURNED_ID",
+  "source": {"type":"region","regionId":"REPLACE_WITH_RETURNED_REGION_ID"},
+  "operations": [
+    {"resize":{"width":1200,"height":630,"fit":"contain"}},
+    {"format":{"type":"webp","quality":80}}
+  ],
+  "cache": true,
+  "maxCredits": 1
+}
+```
+
+Source may be the screenshot, a region, a part, or explicit bounds. For multiple
+outputs replace source/operations with `outputs` (maximum 16); each output allows
+four operations. Reserve one credit per requested output even with caching enabled.
+Verified hits and failed outputs refund their reservations. Successful partial
+outputs remain available as direct JPEG, PNG, or WebP resource links.
+
+The entire source must fit the 24 MP/8 MiB limits even for a small region. See
+[transformations](/guides/transformations) for geometry, encoding, and retention.
+MCP stores under `mcp/transforms`; it does not accept storage overrides or webhooks.
+`async:false` waits up to 45 seconds for one durable job; `async:true` returns it
+immediately. Poll the returned job ID rather than repeating the request. Neither
+transformation nor polling captures the webpage again.
+
 ## Safety boundary
 
 The MCP tools intentionally exclude:
@@ -171,6 +205,6 @@ The MCP tools intentionally exclude:
 - Webhook URLs and secrets.
 - Provider, model, endpoint, and internal-route overrides.
 
-Screenshot targets must be publicly accessible pages accepted by Scrinly's URL policy. Diff inputs must be publicly fetchable HTTPS JPEG or PNG assets. Monitoring tools and private-source credentials remain outside the four-tool MCP surface.
+Screenshot targets must be publicly accessible pages accepted by Scrinly's URL policy. Diff inputs must be publicly fetchable HTTPS JPEG or PNG assets. Monitoring tools and private-source credentials remain outside the five-tool MCP surface.
 
 For repeatable agent behavior, install the [Scrinly agent skill](/guides/agent-skill).

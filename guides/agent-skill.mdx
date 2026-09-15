@@ -25,7 +25,8 @@ You can inspect the source before installing it at [github.com/davmixcool/skills
 
 ## What the skill enforces
 
-- Billable capture and comparison tools run only when requested or clearly authorized.
+- Billable capture, comparison, and transformation tools run only when requested or clearly authorized.
+- Transformations reuse returned screenshot/region IDs, reserve one credit per output, and never silently recapture expired or oversized sources.
 - `maxCredits` matches the requested screenshot add-ons instead of using a broad ceiling.
 - A returned `jobId` is polled with `get_job_status`; the original billable call is never silently repeated.
 - A screenshot stays paired with its matching region manifest and hashes.
@@ -72,6 +73,12 @@ Scrinly job until it is terminal. Do not submit another capture.
 ```
 
 ## Results and failures
+
+For transformations, ask: “Use this screenshotId and its hero region to create
+a 1200 × 630 WebP with contain fit and maxCredits 1. Do not recapture.” Supply
+the actual returned IDs. The skill preserves asset IDs, provenance, expiry,
+partial outputs, and confirmed cache refunds. OAuth requires `transforms:write`;
+reauthorize older connections instead of bypassing their permissions.
 
 A successful capture returns concise text, structured JSON, and resource links for the complete screenshot and any region crops. A comparison may also return an overlay, heatmap, or mask link. Report the terminal status and the core API's actual `credits.charged`, `credits.refunded`, and `credits.net` values.
 
