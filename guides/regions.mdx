@@ -19,6 +19,20 @@ curl --request POST "https://api.scrinly.com/render/screenshot" \
 
 Every crop is decoded from the final verified screenshot—not captured from a second page session. The manifest therefore shares the complete screenshot's coordinate space and SHA-256 identity.
 
+## Inspect crops in the Playground
+
+Enable **Regions** before rendering, then select **Regions** in the floating
+workspace toolbar. Browse the saved crops in document order, download a part, or
+choose **Use as source** to configure a transformation. Browsing and selecting
+do not generate new images. Downloads require the storage provider to allow
+cross-origin reads from the dashboard.
+
+![Playground Regions view displaying saved Tailwind CSS crops with dimensions, download icons, and Use as source buttons.](/assets/playground/regions.png)
+
+*These saved crops use a historical regions-v1 manifest; labels are preserved rather than reclassified for the illustration.*
+
+## Region manifest
+
 ```json
 {
   "regions": {

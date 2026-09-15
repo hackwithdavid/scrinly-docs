@@ -5,6 +5,17 @@ description: "Capture faithful JPEG or PNG screenshots with browser controls."
 
 Use `GET` or `POST /render/screenshot`. Requests cost one credit before optional add-ons.
 
+## Try the Playground
+
+Open the [signed-in Playground](https://app.scrinly.com/#playground), enter a page
+URL, choose your capture options, and press **Render screenshot**. Device switches
+do not capture automatically. Use **Code** for the equivalent request and **Details**
+for the returned JSON. Playground previews use stored screenshots.
+
+![Playground in Capture mode with viewport and region options beside a saved Tailwind CSS screenshot.](/assets/playground/capture.png)
+
+*Current Playground UI shown with a previously captured Tailwind CSS page in an isolated documentation session.*
+
 ## Binary responses
 
 Without storage, synchronous requests return raw `image/jpeg` or `image/png` bytes.
