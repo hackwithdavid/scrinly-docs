@@ -8,6 +8,27 @@ Use the `screenshotId` from a [stored capture](/guides/screenshots) with
 and remain unexpired. Historical captures without a usable reference need recapturing.
 Transformations are deterministic image processing, not AI editing.
 
+## Use the dashboard
+
+In the signed-in Playground, capture a stored screenshot and switch from **Capture**
+to **Transform**. You can also open **Transform screenshot** from a monitor run.
+Neither action captures a page or consumes credits.
+
+Select the complete screenshot, a saved region or part, or draw bounds. When an
+internal Visual Map is available, its labeled targets help fill bounds; uncertain
+targets are marked. The map is not a public API field or an AI smart-crop feature.
+Older references can still use regions and manual bounds without a map.
+
+Configure up to 16 outputs with up to four ordered operations each. **Generate
+outputs** shows the maximum reservation before submitting one asynchronous job.
+Closing the modal stops polling, not server processing; reopening resumes the same
+job while it remains in the browser session. Successful siblings survive partial
+failure, and the result shows confirmed credits rather than estimated refunds.
+
+Customer storage credentials are one-shot. Output previews use direct provider
+URLs. The dashboard does not maintain a screenshot library or transformation
+history, and expired or oversized sources are never automatically recaptured.
+
 ## Send a transformation
 
 <CodeGroup>
