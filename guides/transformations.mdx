@@ -21,8 +21,16 @@ Older references can still use regions and manual bounds without a map.
 
 **Source selection**, the target-overlay checkbox, and **Draw bounds** live in the
 left control pane. Screenshot/Regions switches remain in the floating toolbar.
-The complete original must fit within the 24 MP and 8 MiB source limits; selecting
-a smaller region does not bypass them.
+Original-pixel selections require the complete original to fit within 24 MP and
+8 MiB. Selecting **Saved crop** explicitly uses a saved region part instead, so
+those limits apply to the crop. Saved JPEG crops have already been encoded.
+
+Use `source: {type: "stored-part", regionId: "region-1", partId: "region-1-part-0"}`
+with IDs from the returned manifest. Crop-operation coordinates start at the
+saved crop's top-left. Result provenance retains its original screenshot bounds,
+the crop hash, and the parent screenshot hash. Existing `part` and `region`
+selectors still use original screenshot pixels. Multi-part stitching and
+automatic recapture are not performed.
 
 ![Playground Transform mode with a saved region part selected, resize controls, and the original Tailwind CSS screenshot.](/assets/playground/transform.png)
 

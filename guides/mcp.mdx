@@ -182,7 +182,9 @@ new permission. API-key connections remain supported.
 }
 ```
 
-Source may be the screenshot, a region, a part, or explicit bounds. For multiple
+Source may be the screenshot, a region, an original-pixel part, an explicit
+`stored-part`, or bounds. `stored-part` processes saved crop bytes: source limits
+apply to that crop, and previously encoded JPEG pixels are not restored. For multiple
 outputs replace source/operations with `outputs` (maximum 16); each output allows
 four operations. Reserve one credit per requested output even with caching enabled.
 Verified hits and failed outputs refund their reservations. Successful partial

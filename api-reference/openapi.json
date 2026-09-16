@@ -651,7 +651,8 @@
             "type": "object",
             "properties": {
               "type": {
-                "const": "part"
+                "enum": ["part", "stored-part"],
+                "description": "part selects original screenshot pixels; stored-part explicitly uses the saved crop bytes and their source limits."
               },
               "regionId": {
                 "type": "string"
@@ -1054,6 +1055,7 @@
                   "screenshot",
                   "region",
                   "part",
+                  "stored-part",
                   "bounds"
                 ]
               },
@@ -1093,6 +1095,10 @@
               "sourceBounds": {
                 "$ref": "#/components/schemas/TransformBounds"
               },
+              "sourceKind": { "const": "stored-part" },
+              "parentScreenshotSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+              "sourceCoordinateSpace": { "const": "screenshot" },
+              "operationCoordinateSpace": { "const": "stored-part" },
               "outputSha256": {
                 "type": "string",
                 "pattern": "^[a-f0-9]{64}$"
