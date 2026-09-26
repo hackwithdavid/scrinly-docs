@@ -172,26 +172,24 @@ new permission. API-key connections remain supported.
 ```json
 {
   "screenshotId": "scr_REPLACE_WITH_RETURNED_ID",
-  "source": {"type":"region","regionId":"REPLACE_WITH_RETURNED_REGION_ID"},
-  "operations": [
-    {"resize":{"width":1200,"height":630,"fit":"contain"}},
-    {"format":{"type":"webp","quality":80}}
-  ],
+  "preset": "og-image",
+  "region": "REPLACE_WITH_RETURNED_REGION_ID",
   "cache": true,
   "maxCredits": 1
 }
 ```
 
-Source may be the screenshot, a region, an original-pixel part, an explicit
-`stored-part`, or bounds. `stored-part` processes saved crop bytes: source limits
-apply to that crop, and previously encoded JPEG pixels are not restored. For multiple
-outputs replace source/operations with `outputs` (maximum 16); each output allows
-four operations. Reserve one credit per requested output even with caching enabled.
-Verified hits and failed outputs refund their reservations. Successful partial
-outputs remain available as direct JPEG, PNG, or WebP resource links.
+Pick a `preset` (`og-image`, `twitter-card`, `thumbnail`, `square`, `full-width`) or set
+`width`, `height`, `fit`, `format` and `quality`; explicit fields override the preset.
+Optionally cut a `region`, a `part` of it, or `bounds` first. `savedCrop: true` (with
+`region` + `part`) processes the saved crop file: source limits apply to that crop, and
+previously encoded JPEG pixels are not restored. For multiple outputs use `outputs`
+(maximum 16), each with the same fields. Reserve one credit per requested output even
+with caching enabled. Verified hits and failed outputs refund their reservations.
+Successful partial outputs remain available as direct JPEG, PNG, or WebP resource links.
 
-The entire source must fit the 24 MP/8 MiB limits even for a small region. See
-[transformations](/guides/transformations) for geometry, encoding, and retention.
+Without `savedCrop`, the entire source must fit the 24 MP/8 MiB limits even for a small region. See
+[transformations](/guides/transformations) for presets, encoding, and retention.
 MCP stores under `mcp/transforms`; it does not accept storage overrides or webhooks.
 `async:false` waits up to 45 seconds for one durable job; `async:true` returns it
 immediately. Poll the returned job ID rather than repeating the request. Neither

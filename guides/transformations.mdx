@@ -1,12 +1,19 @@
 ---
 title: "Screenshot transformations"
-description: "Crop, resize, and encode an existing screenshot without capturing the page again."
+description: "Turn a screenshot you already captured into an OG image, thumbnail or any size and format — without capturing the page again."
 ---
 
-Use the `screenshotId` from a [stored capture](/guides/screenshots) with
-`POST /render/screenshot/{id}/transform`. The reference must belong to your account
-and remain unexpired. Historical captures without a usable reference need recapturing.
-Transformations are deterministic image processing, not AI editing.
+Use the `screenshotId` from a [stored capture](/guides/screenshots). The reference must
+belong to your account and remain unexpired. Transformations are deterministic image
+processing, not AI editing.
+
+```bash
+curl "https://api.scrinly.com/render/screenshot/$SCREENSHOT_ID/transform?preset=og-image" \
+  -H "Authorization: Bearer $SCRINLY_API_KEY"
+```
+
+That is the whole API: pick a **preset** or set **width / height / format**, and
+optionally say **what to cut** first — a saved `region`, one `part` of it, or `bounds`.
 
 ## Use the dashboard
 
@@ -14,30 +21,19 @@ In the signed-in Playground, capture a stored screenshot and switch from **Captu
 to **Transform**. You can also open **Transform screenshot** from a monitor run.
 Neither action captures a page or consumes credits.
 
-Select the complete screenshot, a saved region or part, or draw bounds. When an
-internal Visual Map is available, its labeled targets help fill bounds; uncertain
-targets are marked. The map is not a public API field or an AI smart-crop feature.
-Older references can still use regions and manual bounds without a map.
-
-**Source selection**, the target-overlay checkbox, and **Draw bounds** live in the
-left control pane. Screenshot/Regions switches remain in the floating toolbar.
-Original-pixel selections require the complete original to fit within 24 MP and
-8 MiB. Selecting **Saved crop** explicitly uses a saved region part instead, so
-those limits apply to the crop. Saved JPEG crops have already been encoded.
-
-Use `source: {type: "stored-part", regionId: "region-1", partId: "region-1-part-0"}`
-with IDs from the returned manifest. Crop-operation coordinates start at the
-saved crop's top-left. Result provenance retains its original screenshot bounds,
-the crop hash, and the parent screenshot hash. Existing `part` and `region`
-selectors still use original screenshot pixels. Multi-part stitching and
-automatic recapture are not performed.
+Each output has a **Source** (complete screenshot, a saved region or part, a saved crop,
+or custom bounds), a **Preset**, and optional size, fit, format and quality overrides —
+the preset's values show as placeholders. The target overlay and **Draw bounds** sit in
+the workspace toolbar next to the Screenshot/Regions switch; click a region box or drag
+on the screenshot to set an output's source. **Use as source** on a region crop selects
+that saved crop. The **Code** tab shows the exact request, including a plain URL for a
+single output.
 
 ![Playground Transform mode with a saved region part selected, resize controls, and the original Tailwind CSS screenshot.](/assets/playground/transform.png)
 
 *Configuration example in an isolated documentation session. The demo reference and expiry are illustrative; no transformation was submitted.*
 
-Configure up to 16 outputs with up to four ordered operations each. **Generate
-outputs** shows the maximum reservation before submitting one asynchronous job.
+**Generate outputs** shows the maximum reservation before submitting one asynchronous job.
 Closing the modal stops polling, not server processing; reopening resumes the same
 job while it remains in the browser session. Successful siblings survive partial
 failure, and the result shows confirmed credits rather than estimated refunds.
@@ -49,11 +45,15 @@ history, and expired or oversized sources are never automatically recaptured.
 ## Send a transformation
 
 <CodeGroup>
-```bash cURL
+```bash cURL (URL)
+curl "https://api.scrinly.com/render/screenshot/$SCREENSHOT_ID/transform?preset=og-image&region=region-1" \
+  -H "Authorization: Bearer $SCRINLY_API_KEY"
+```
+```bash cURL (JSON)
 curl -X POST "https://api.scrinly.com/render/screenshot/$SCREENSHOT_ID/transform" \
   -H "Authorization: Bearer $SCRINLY_API_KEY" \
   -H 'Content-Type: application/json' \
-  -d '{"source":{"type":"region","regionId":"region-1"},"operations":[{"resize":{"width":1200,"height":630,"fit":"contain"}},{"format":{"type":"webp","quality":80}}]}'
+  -d '{"preset":"og-image","region":"region-1"}'
 ```
 ```javascript JavaScript
 const response = await fetch(
@@ -64,13 +64,7 @@ const response = await fetch(
       Authorization: `Bearer ${process.env.SCRINLY_API_KEY}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      source: { type: "region", regionId: "region-1" },
-      operations: [
-        { resize: { width: 1200, height: 630, fit: "contain" } },
-        { format: { type: "webp", quality: 80 } },
-      ],
-    }),
+    body: JSON.stringify({ preset: "og-image", region: "region-1" }),
   },
 );
 const result = await response.json();
@@ -82,69 +76,82 @@ import requests
 response = requests.post(
     f"https://api.scrinly.com/render/screenshot/{os.environ['SCREENSHOT_ID']}/transform",
     headers={"Authorization": f"Bearer {os.environ['SCRINLY_API_KEY']}"},
-    json={
-        "source": {"type": "region", "regionId": "region-1"},
-        "operations": [
-            {"resize": {"width": 1200, "height": 630, "fit": "contain"}},
-            {"format": {"type": "webp", "quality": 80}},
-        ],
-    },
+    json={"preset": "og-image", "region": "region-1"},
     timeout=150,
 )
 result = response.json()
 ```
 </CodeGroup>
 
+The URL form (`GET`) takes the same fields as query parameters and describes one output.
+It defaults to `cache=true`, so fetching the same link again reuses the stored output
+instead of charging again. `outputs`, `webhookSecret` and storage credentials are POST-only.
 Use region and part IDs from your own saved manifest; the example ID is a placeholder.
 Authentication requires the account's bearer API key. No provider key is needed.
 
-## Select pixels
+## Presets
 
-| `source` | Selection |
+| `preset` | Size | Fit | Format |
+| --- | --- | --- | --- |
+| `og-image` | 1200 × 630 | cover | WebP, quality 80 |
+| `twitter-card` | 1200 × 600 | cover | WebP, quality 80 |
+| `thumbnail` | 400 wide | contain | WebP, quality 75 |
+| `square` | 1080 × 1080 | cover | JPEG, quality 85 |
+| `full-width` | 1920 wide | contain | WebP, quality 80 |
+
+Any field you set overrides the preset: `{"preset":"og-image","format":"png"}` is a PNG
+OG image; `{"preset":"thumbnail","width":240}` is a 240-wide thumbnail.
+
+## Choose what to cut
+
+| Fields | Source |
 | --- | --- |
-| Omitted or `{"type":"screenshot"}` | Complete screenshot |
-| `{"type":"region","regionId":"region-1"}` | Region bounds from a saved v1 or v2 manifest |
-| `{"type":"part","regionId":"region-1","partId":"region-1-part-0"}` | One part's bounds |
-| `{"type":"bounds","bounds":{"x":0,"y":100,"width":800,"height":600}}` | Integer screenshot-coordinate bounds |
+| none | Complete screenshot |
+| `region` | A saved region, e.g. `"region":"region-1"` (capture with `regions=true`) |
+| `region` + `part` | One part of that region, cut from the original pixels |
+| `region` + `part` + `savedCrop: true` | The stored crop file for that part |
+| `bounds` | A rectangle: `"0,100,800,600"` (x,y,width,height) or `{"x":0,"y":100,"width":800,"height":600}` |
 
-Every selection reads the original stored screenshot, not its previously encoded crop
-assets. The original bytes, dimensions, MIME type, size and SHA-256 are verified first.
-Source assets must be publicly fetchable over HTTPS. Redirects are subject to SSRF checks.
-Arbitrary source URLs, uploaded images, page headers, cookies and capture settings are not accepted.
+Use one of `region` or `bounds`, not both. Original-pixel sources read the stored screenshot,
+whose bytes, dimensions, MIME type, size and SHA-256 are verified first. A **saved crop**
+reads the part's own stored file instead — saved JPEG crops have already been encoded once,
+and result provenance records the parent screenshot hash and original bounds. Arbitrary
+source URLs, uploaded images, page headers, cookies and capture settings are not accepted.
 
-## Operations and encoding
+<Note>
+**Source size.** Cutting original pixels requires the *whole* screenshot to fit within
+24 MP and 8 MiB, even when you only select a small region. A full-page capture at device
+pixel ratio 2 is often larger (3024 × 16922 is 51 MP). For those, use `savedCrop: true`:
+the limits then apply to the crop, not the page.
+</Note>
 
-Operations run in array order, up to four per output:
+## Size and encoding
 
-- `crop`: integer `x`, `y`, `width`, `height` inside the **current intermediate image**.
-- `resize`: `width`, `height`, and `fit`. Omit either dimension to preserve the current
-  aspect ratio, rounded to the nearest positive integer.
-- `format`: `type` of `jpeg`, `png` or `webp`, optional `quality` from 1–100, and an
-  optional `background`. This operation may appear once and must be last.
+- `width` / `height`: give one to keep the aspect ratio (rounded to a positive integer),
+  or both to set the box.
+- `fit` (with both sides): `contain` (default) fits everything with centered padding;
+  `cover` fills the box with a centered crop; `fill` stretches.
+- `format`: `jpeg`, `png` or `webp`. Omitted, the output keeps the source's family.
+- `quality`: 1–100, default 80. PNG is lossless and ignores it.
+- `background`: six-digit hex such as `"#ffffff"` for `contain` padding and JPEG
+  transparency. Without it, PNG and WebP keep transparency and JPEG uses white.
 
-Resize `fit` defaults to `contain`: fit all selected content with centered padding.
-`cover` fills the requested dimensions with a centered crop. `fill` stretches to both dimensions.
-
-PNG and WebP retain transparency. JPEG uses white for transparency; contain padding is
-transparent for alpha-capable output and white for JPEG. Supply a six-digit hex color
-such as `"background":"#ffffff"` on resize or format to choose a background.
-Resize's explicit background takes precedence for that operation's padding.
-
-Without a format operation, output retains the original screenshot format. Lossy quality
-defaults to 80; PNG is lossless and does not use the quality value. Geometry operations
-stay in memory and only the final image is encoded. JPEG output is still re-encoded:
+With no size and no preset, the screenshot is only re-encoded. Every output is one
+select → resize → encode step; only the final image is encoded. JPEG output is re-encoded:
 lossless cropping or preservation of original JPEG bytes is not promised. Browser/codec
 upgrades can change encoded bytes; provenance records the actual engine identity.
 
 ## Multiple outputs and credits
 
-Replace top-level `source` and `operations` with an `outputs` array. Do not mix both forms:
+Put several outputs in an `outputs` array (POST only) instead of describing one at the
+top level. Do not mix both forms:
 
 ```json
 {
   "outputs": [
-    {"operations": [{"resize": {"width": 640}}]},
-    {"operations": [{"resize": {"width": 320}}, {"format": {"type": "webp"}}]}
+    {"preset": "og-image"},
+    {"preset": "thumbnail"},
+    {"region": "region-2", "width": 600, "format": "webp"}
   ],
   "cache": true
 }
@@ -156,7 +163,7 @@ costs one credit. Failed outputs and verified cache hits refund that reservation
 Read `charged`, `refunded` and `net` rather than inferring settlement from HTTP status.
 
 Single-output success returns an `assetId`, parent `screenshotId`, resolved `source`,
-normalized `executedPlan`, provenance, direct-storage `media`, `referenceExpiresAt`,
+the `executedPlan` (the resize/encode steps that ran), provenance, direct-storage `media`, `referenceExpiresAt`,
 `cacheHit` and credits. Provenance includes source/output hashes, selected bounds and
 the transform, browser and codec versions.
 
@@ -174,7 +181,7 @@ prefixes and direct-provider URLs remain supported. No image proxy is introduced
 Single-output success includes `X-Scrinly-Storage-URL`; multiple outputs use individual
 `media.url` values, without an ambiguous top-level storage header.
 
-Caching is opt-in with `cache:true`. Identity is account-, source-reference-, geometry-,
+Caching is opt-in with `cache:true` on POST and on by default for the URL form. Identity is account-, source-reference-, geometry-,
 operation-, destination- and engine-specific. Cached artifacts are downloaded and hash-verified,
 not trusted from their keys or a HEAD response alone. Missing or mismatched artifacts are
 regenerated; infrastructure failures do not silently trigger paid regeneration.
@@ -200,9 +207,9 @@ applies. Delivery retries do not rerun transformations or alter credit settlemen
 | Limit | Maximum |
 | --- | --- |
 | JSON request body | 256 KiB |
-| Outputs / operations per output | 16 / 4 |
+| Outputs per request | 16 |
 | Encoded source / encoded output | 8 MiB each |
-| Source pixels | 24 MP |
+| Source pixels (whole screenshot, or the saved crop) | 24 MP |
 | Intermediate or final output | 8 MP each |
 | Aggregate final-output pixels | 32 MP |
 | Either image axis | 32,768 pixels |

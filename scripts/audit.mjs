@@ -65,6 +65,7 @@ if (!openapi.components?.securitySchemes?.BearerAuth) failures.push('OpenAPI bea
 const expected = new Set([
   'GET /render/screenshot',
   'POST /render/screenshot',
+  'GET /render/screenshot/{id}/transform',
   'POST /render/screenshot/{id}/transform',
   'POST /render/batch',
   'POST /render/diff',
@@ -99,7 +100,7 @@ for (const [path, pathItem] of Object.entries(openapi.paths ?? {})) {
 
 for (const route of expected) if (!actual.has(route)) failures.push(`OpenAPI is missing ${route}`);
 for (const route of actual) if (!expected.has(route)) failures.push(`OpenAPI exposes unexpected route ${route}`);
-if (actual.size !== 20) failures.push(`OpenAPI must expose exactly 20 operations, found ${actual.size}`);
+if (actual.size !== 21) failures.push(`OpenAPI must expose exactly 21 operations, found ${actual.size}`);
 
 const regionVersions = openapi.components?.schemas?.Regions?.properties?.version;
 if (JSON.stringify(regionVersions?.enum) !== JSON.stringify(['regions-v1', 'regions-v2']) || regionVersions?.const) {
