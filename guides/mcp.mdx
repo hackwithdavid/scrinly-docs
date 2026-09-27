@@ -184,7 +184,7 @@ Pick a `preset` (`og-image`, `twitter-card`, `thumbnail`, `square`, `full-width`
 Optionally cut a `region`, a `part` of it, or `bounds` first. `savedCrop: true` (with
 `region` + `part`) processes the saved crop file: source limits apply to that crop, and
 previously encoded JPEG pixels are not restored. For multiple outputs use `outputs`
-(maximum 16), each with the same fields. Reserve one credit per requested output even
+(maximum 16): preset names or objects, with top-level fields as shared defaults. Reserve one credit per requested output even
 with caching enabled. Verified hits and failed outputs refund their reservations.
 Successful partial outputs remain available as direct JPEG, PNG, or WebP resource links.
 

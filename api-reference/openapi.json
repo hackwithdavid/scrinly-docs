@@ -87,19 +87,15 @@
                   }
                 },
                 "several": {
-                  "summary": "Several outputs in one job",
+                  "summary": "Several outputs from one region",
                   "value": {
+                    "region": "region-1",
                     "outputs": [
+                      "og-image",
+                      "thumbnail",
                       {
-                        "preset": "og-image"
-                      },
-                      {
-                        "preset": "thumbnail"
-                      },
-                      {
-                        "region": "region-2",
-                        "width": 600,
-                        "format": "webp"
+                        "preset": "square",
+                        "format": "png"
                       }
                     ],
                     "async": true
@@ -250,7 +246,7 @@
             "schema": {
               "type": "string"
             },
-            "description": "With `region`: cut one part of it (original screenshot pixels)."
+            "description": "With `region`: part id or index (`0` = first)."
           },
           {
             "name": "savedCrop",
@@ -1928,8 +1924,16 @@
             "description": "Cut this saved region (e.g. `region-1`) from the screenshot. Requires a capture with `regions=true`."
           },
           "part": {
-            "type": "string",
-            "description": "With `region`: cut one part of it (original screenshot pixels)."
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": 0
+              }
+            ],
+            "description": "With `region`: one part of it, by id (`region-1-part-0`) or index (`0` = first). Original screenshot pixels."
           },
           "savedCrop": {
             "type": "boolean",
@@ -1996,7 +2000,7 @@
       "TransformRequest": {
         "type": "object",
         "additionalProperties": false,
-        "description": "Describe one output at the top level, or several in `outputs`. Not both.",
+        "description": "Describe one output at the top level, or several in `outputs`. With `outputs`, top-level fields are defaults for every output; an output that says what to cut replaces the default `region`/`bounds`.",
         "properties": {
           "preset": {
             "$ref": "#/components/schemas/TransformPreset"
@@ -2006,8 +2010,16 @@
             "description": "Cut this saved region (e.g. `region-1`) from the screenshot. Requires a capture with `regions=true`."
           },
           "part": {
-            "type": "string",
-            "description": "With `region`: cut one part of it (original screenshot pixels)."
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": 0
+              }
+            ],
+            "description": "With `region`: one part of it, by id (`region-1-part-0`) or index (`0` = first). Original screenshot pixels."
           },
           "savedCrop": {
             "type": "boolean",
@@ -2073,9 +2085,16 @@
             "minItems": 1,
             "maxItems": 16,
             "items": {
-              "$ref": "#/components/schemas/TransformOutputSpec"
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/TransformPreset"
+                },
+                {
+                  "$ref": "#/components/schemas/TransformOutputSpec"
+                }
+              ]
             },
-            "description": "Several outputs in one job; one credit each. Returns ordered `results`."
+            "description": "Several outputs in one job, one credit each. Each is a preset name or an object; top-level fields apply to all. Returns ordered `results`."
           },
           "cache": {
             "type": "boolean",
@@ -4767,7 +4786,7 @@
           "square",
           "full-width"
         ],
-        "description": "Named output shape. Explicit fields override it.\n\n| preset | size | fit | format |\n|---|---|---|---|\n| `og-image` | 1200 × 630 | cover | webp 80 |\n| `twitter-card` | 1200 × 600 | cover | webp 80 |\n| `thumbnail` | 400 wide | contain | webp 75 |\n| `square` | 1080 × 1080 | cover | jpeg 85 |\n| `full-width` | 1920 wide | contain | webp 80 |"
+        "description": "Named output shape. Explicit fields override it.\n\n| preset | size | fit | format |\n|---|---|---|---|\n| `og-image` | 1200 × 630 | cover | webp 80 |\n| `twitter-card` | 1200 × 600 | cover | webp 80 |\n| `thumbnail` | 400 wide | contain | webp 75 |\n| `square` | 1080 × 1080 | cover | jpeg 85 |\n| `full-width` | 1920 wide | contain | webp 80 |\n\nOn a whole full-page screenshot, the fixed-shape presets (`og-image`, `twitter-card`, `square`) take the **top** of the page at their aspect ratio. Set `region`, `bounds` or `fit` to choose differently."
       }
     }
   },

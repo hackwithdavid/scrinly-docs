@@ -3,17 +3,27 @@ title: "Screenshot transformations"
 description: "Turn a screenshot you already captured into an OG image, thumbnail or any size and format — without capturing the page again."
 ---
 
-Use the `screenshotId` from a [stored capture](/guides/screenshots). The reference must
-belong to your account and remain unexpired. Transformations are deterministic image
+Transformations work on a screenshot you already captured and stored. Capture once with
+`store: true`, keep the `screenshotId` from the response, then turn it into as many sizes
+as you need — the page is not loaded again. Transformations are deterministic image
 processing, not AI editing.
 
 ```bash
+# 1. Capture and store. The response includes "screenshotId": "scr_…"
+curl -X POST "https://api.scrinly.com/render/screenshot" \
+  -H "Authorization: Bearer $SCRINLY_API_KEY" \
+  -H 'Content-Type: application/json' \
+  -d '{"url":"https://example.com","fullPage":true,"store":true}'
+
+# 2. Transform it
 curl "https://api.scrinly.com/render/screenshot/$SCREENSHOT_ID/transform?preset=og-image" \
   -H "Authorization: Bearer $SCRINLY_API_KEY"
 ```
 
 That is the whole API: pick a **preset** or set **width / height / format**, and
 optionally say **what to cut** first — a saved `region`, one `part` of it, or `bounds`.
+The `screenshotId` must belong to your account and remain unexpired; regions need a
+capture with `regions=true`, everything else does not.
 
 ## Use the dashboard
 
@@ -102,13 +112,17 @@ Authentication requires the account's bearer API key. No provider key is needed.
 Any field you set overrides the preset: `{"preset":"og-image","format":"png"}` is a PNG
 OG image; `{"preset":"thumbnail","width":240}` is a 240-wide thumbnail.
 
+On a whole full-page screenshot, the fixed-shape presets (`og-image`, `twitter-card`,
+`square`) use the **top of the page** at their aspect ratio — the hero, not whatever sits
+in the middle of a long page. Set `region`, `bounds` or `fit` to choose differently.
+
 ## Choose what to cut
 
 | Fields | Source |
 | --- | --- |
 | none | Complete screenshot |
 | `region` | A saved region, e.g. `"region":"region-1"` (capture with `regions=true`) |
-| `region` + `part` | One part of that region, cut from the original pixels |
+| `region` + `part` | One part of that region, by id (`"region-1-part-0"`) or index (`0`), cut from the original pixels |
 | `region` + `part` + `savedCrop: true` | The stored crop file for that part |
 | `bounds` | A rectangle: `"0,100,800,600"` (x,y,width,height) or `{"x":0,"y":100,"width":800,"height":600}` |
 
@@ -143,19 +157,19 @@ upgrades can change encoded bytes; provenance records the actual engine identity
 
 ## Multiple outputs and credits
 
-Put several outputs in an `outputs` array (POST only) instead of describing one at the
-top level. Do not mix both forms:
+Put several outputs in an `outputs` array (POST only). Each is a preset name, or an
+object for anything more specific. Top-level fields are defaults for every output:
 
 ```json
 {
-  "outputs": [
-    {"preset": "og-image"},
-    {"preset": "thumbnail"},
-    {"region": "region-2", "width": 600, "format": "webp"}
-  ],
+  "region": "region-1",
+  "outputs": ["og-image", "thumbnail", {"preset": "square", "format": "png"}],
   "cache": true
 }
 ```
+
+An output that says what to cut (`region`, `part`, `bounds`) replaces the default
+selection rather than combining with it; every other default still applies.
 
 All specifications validate before any credit reservation. One credit per output is
 reserved before source or cache-artifact downloads. Each newly generated successful output
