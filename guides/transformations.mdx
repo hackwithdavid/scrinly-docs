@@ -120,9 +120,9 @@ source URLs, uploaded images, page headers, cookies and capture settings are not
 
 <Note>
 **Source size.** Cutting original pixels requires the *whole* screenshot to fit within
-24 MP and 8 MiB, even when you only select a small region. A full-page capture at device
-pixel ratio 2 is often larger (3024 × 16922 is 51 MP). For those, use `savedCrop: true`:
-the limits then apply to the crop, not the page.
+64 MP and 24 MiB, even when you only select a small region. That covers most full-page
+captures, including 2× ones (a 3024-wide page up to about 21,000 px tall). For longer pages,
+use `savedCrop: true` on a region part: the limits then apply to the crop, not the page.
 </Note>
 
 ## Size and encoding
@@ -208,8 +208,8 @@ applies. Delivery retries do not rerun transformations or alter credit settlemen
 | --- | --- |
 | JSON request body | 256 KiB |
 | Outputs per request | 16 |
-| Encoded source / encoded output | 8 MiB each |
-| Source pixels (whole screenshot, or the saved crop) | 24 MP |
+| Encoded source / encoded output | 24 MiB / 8 MiB |
+| Source pixels (whole screenshot, or the saved crop) | 64 MP |
 | Intermediate or final output | 8 MP each |
 | Aggregate final-output pixels | 32 MP |
 | Either image axis | 32,768 pixels |

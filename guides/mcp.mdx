@@ -188,7 +188,7 @@ previously encoded JPEG pixels are not restored. For multiple outputs use `outpu
 with caching enabled. Verified hits and failed outputs refund their reservations.
 Successful partial outputs remain available as direct JPEG, PNG, or WebP resource links.
 
-Without `savedCrop`, the entire source must fit the 24 MP/8 MiB limits even for a small region. See
+Without `savedCrop`, the entire source must fit the 64 MP/24 MiB limits even for a small region. See
 [transformations](/guides/transformations) for presets, encoding, and retention.
 MCP stores under `mcp/transforms`; it does not accept storage overrides or webhooks.
 `async:false` waits up to 45 seconds for one durable job; `async:true` returns it

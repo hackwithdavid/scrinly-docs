@@ -259,7 +259,7 @@
               "type": "boolean",
               "default": false
             },
-            "description": "With `region` + `part`: use the stored crop file instead of cutting original pixels. Works on screenshots too large to transform whole."
+            "description": "With `region` + `part`: use the stored crop file instead of cutting original pixels. Use it for pages whose whole screenshot exceeds 64 MP or 24 MiB."
           },
           {
             "name": "bounds",
@@ -1934,7 +1934,7 @@
           "savedCrop": {
             "type": "boolean",
             "default": false,
-            "description": "With `region` + `part`: use the stored crop file instead of cutting original pixels. Works on screenshots too large to transform whole."
+            "description": "With `region` + `part`: use the stored crop file instead of cutting original pixels. Use it for pages whose whole screenshot exceeds 64 MP or 24 MiB."
           },
           "bounds": {
             "oneOf": [
@@ -2012,7 +2012,7 @@
           "savedCrop": {
             "type": "boolean",
             "default": false,
-            "description": "With `region` + `part`: use the stored crop file instead of cutting original pixels. Works on screenshots too large to transform whole."
+            "description": "With `region` + `part`: use the stored crop file instead of cutting original pixels. Use it for pages whose whole screenshot exceeds 64 MP or 24 MiB."
           },
           "bounds": {
             "oneOf": [
